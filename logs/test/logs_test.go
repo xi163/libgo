@@ -16,12 +16,12 @@ func TestMain(m *testing.M) {
 }
 
 func Test(t *testing.T) {
-	logs.SetPrename("gonet")
+	logs.SetPrename("libgo")
 	logs.SetTimezone(logs.MY_CST)
 	logs.SetMode(logs.M_STDOUT_FILE)
 	logs.SetStyle(logs.F_DETAIL)
 	logs.SetLevel(logs.LVL_DEBUG)
-	logs.Init("/home", "gonet", 100000000)
+	logs.Init("/home", "libgo", 100000000)
 	t.Run("logs_test:", out_test)
 	t.Run("logs_test:", path_test)
 }
