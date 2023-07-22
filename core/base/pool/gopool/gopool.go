@@ -3,8 +3,8 @@ package gopool
 import (
 	"time"
 
-	"github.com/xi123/libgo/core/base/pool"
-	"github.com/xi123/libgo/core/cb"
+	"github.com/xi163/libgo/core/base/pool"
+	"github.com/xi163/libgo/core/cb"
 )
 
 // go协程池(动态, 非阻塞)

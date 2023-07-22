@@ -10,15 +10,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/xi123/libgo/core/net/conn"
-	"github.com/xi123/libgo/core/net/tcp/tcpserver"
-	"github.com/xi123/libgo/core/net/transmit"
-	wschannel_tst "github.com/xi123/libgo/core/net/transmit/wschannel/wschannel_tst"
-	logs "github.com/xi123/libgo/logs"
-	"github.com/xi123/libgo/utils/conv"
-	"github.com/xi123/libgo/utils/timestamp"
-	"github.com/xi123/libgo/utils/user_context"
-	"github.com/xi123/libgo/utils/user_session"
+	"github.com/xi163/libgo/core/net/conn"
+	"github.com/xi163/libgo/core/net/tcp/tcpserver"
+	"github.com/xi163/libgo/core/net/transmit"
+	wschannel_tst "github.com/xi163/libgo/core/net/transmit/wschannel/wschannel_tst"
+	logs "github.com/xi163/libgo/logs"
+	"github.com/xi163/libgo/utils/conv"
+	"github.com/xi163/libgo/utils/timestamp"
+	"github.com/xi163/libgo/utils/user_context"
+	"github.com/xi163/libgo/utils/user_session"
 )
 
 type EchoServer struct {

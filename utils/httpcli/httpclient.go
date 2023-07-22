@@ -9,7 +9,7 @@ import (
 	"net/http/cookiejar"
 	"time"
 
-	"github.com/xi123/libgo/logs"
+	"github.com/xi163/libgo/logs"
 )
 
 func New(timeout int) *http.Client {

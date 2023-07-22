@@ -3,8 +3,8 @@ package watcher
 import (
 	"sync"
 
-	"github.com/xi123/libgo/core/base/cc"
-	"github.com/xi123/libgo/core/base/mq"
+	"github.com/xi163/libgo/core/base/cc"
+	"github.com/xi163/libgo/core/base/mq"
 )
 
 // <summary>

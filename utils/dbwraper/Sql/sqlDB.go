@@ -9,7 +9,7 @@ import (
 
 	"github.com/go-sql-driver/mysql"
 
-	"github.com/xi123/libgo/logs"
+	"github.com/xi163/libgo/logs"
 )
 
 type DB struct {

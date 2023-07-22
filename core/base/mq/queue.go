@@ -3,7 +3,7 @@ package mq
 import (
 	"sync"
 
-	"github.com/xi123/libgo/core/cb"
+	"github.com/xi163/libgo/core/cb"
 )
 
 type New func(v ...any) Queue

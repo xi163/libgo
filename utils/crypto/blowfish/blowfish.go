@@ -3,8 +3,8 @@ package blowfish
 import (
 	"fmt"
 
-	"github.com/xi123/libgo/utils/crypto/aes/ecb"
-	"github.com/xi123/libgo/utils/crypto/padding"
+	"github.com/xi163/libgo/utils/crypto/aes/ecb"
+	"github.com/xi163/libgo/utils/crypto/padding"
 	"golang.org/x/crypto/blowfish"
 )
 

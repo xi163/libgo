@@ -4,9 +4,9 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/xi123/libgo/core/net/conn"
-	"github.com/xi123/libgo/core/net/transmit"
-	"github.com/xi123/libgo/utils/timestamp"
+	"github.com/xi163/libgo/core/net/conn"
+	"github.com/xi163/libgo/core/net/transmit"
+	"github.com/xi163/libgo/utils/timestamp"
 )
 
 type OnHandshake func(w http.ResponseWriter, r *http.Request) bool

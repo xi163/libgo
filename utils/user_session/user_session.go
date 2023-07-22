@@ -3,8 +3,8 @@ package user_session
 import (
 	"sync"
 
-	"github.com/xi123/libgo/core/net/conn"
-	"github.com/xi123/libgo/logs"
+	"github.com/xi163/libgo/core/net/conn"
+	"github.com/xi163/libgo/logs"
 )
 
 // <summary>

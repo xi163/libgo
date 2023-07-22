@@ -7,12 +7,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/xi123/libgo/core/base/cc"
-	"github.com/xi123/libgo/core/base/pool/connpool"
-	"github.com/xi123/libgo/core/cb"
-	"github.com/xi123/libgo/core/net/conn"
-	"github.com/xi123/libgo/core/net/transmit"
-	logs "github.com/xi123/libgo/logs"
+	"github.com/xi163/libgo/core/base/cc"
+	"github.com/xi163/libgo/core/base/pool/connpool"
+	"github.com/xi163/libgo/core/cb"
+	"github.com/xi163/libgo/core/net/conn"
+	"github.com/xi163/libgo/core/net/transmit"
+	logs "github.com/xi163/libgo/logs"
 
 	"github.com/gorilla/websocket"
 )

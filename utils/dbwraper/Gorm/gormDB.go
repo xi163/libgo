@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/xi123/libgo/logs"
+	"github.com/xi163/libgo/logs"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"

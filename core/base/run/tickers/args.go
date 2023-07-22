@@ -3,9 +3,9 @@ package tickers
 import (
 	"time"
 
-	"github.com/xi123/libgo/core/base/cc"
-	"github.com/xi123/libgo/core/base/run"
-	"github.com/xi123/libgo/core/base/timer"
+	"github.com/xi163/libgo/core/base/cc"
+	"github.com/xi163/libgo/core/base/run"
+	"github.com/xi163/libgo/core/base/timer"
 )
 
 // RunAfter(delay int32, args ...any) uint32

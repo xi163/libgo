@@ -3,9 +3,9 @@ package logs
 import (
 	"time"
 
-	"github.com/xi123/libgo/core/base/cc"
-	"github.com/xi123/libgo/core/base/run"
-	"github.com/xi123/libgo/core/base/timer"
+	"github.com/xi163/libgo/core/base/cc"
+	"github.com/xi163/libgo/core/base/run"
+	"github.com/xi163/libgo/core/base/timer"
 )
 
 // <summary>

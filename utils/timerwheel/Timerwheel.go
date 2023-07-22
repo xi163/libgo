@@ -1,10 +1,10 @@
 package timerwheel
 
 import (
-	"github.com/xi123/libgo/logs"
-	"github.com/xi123/libgo/utils/bucket"
-	"github.com/xi123/libgo/utils/circular"
-	"github.com/xi123/libgo/utils/gid"
+	"github.com/xi163/libgo/logs"
+	"github.com/xi163/libgo/utils/bucket"
+	"github.com/xi163/libgo/utils/circular"
+	"github.com/xi163/libgo/utils/gid"
 )
 
 // <summary>

@@ -3,9 +3,9 @@ package keepalive
 import (
 	"sync"
 
-	"github.com/xi123/libgo/core/base/pipe"
-	"github.com/xi123/libgo/core/net/conn"
-	"github.com/xi123/libgo/core/net/keepalive/bucket"
+	"github.com/xi163/libgo/core/base/pipe"
+	"github.com/xi163/libgo/core/net/conn"
+	"github.com/xi163/libgo/core/net/keepalive/bucket"
 )
 
 var (

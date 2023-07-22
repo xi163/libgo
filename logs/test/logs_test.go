@@ -6,9 +6,9 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/xi123/libgo/logs"
-	"github.com/xi123/libgo/logs/color_linux"
-	//"github.com/xi123/libgo/logs/color_win"
+	"github.com/xi163/libgo/logs"
+	"github.com/xi163/libgo/logs/color_linux"
+	//"github.com/xi163/libgo/logs/color_win"
 )
 
 func TestMain(m *testing.M) {

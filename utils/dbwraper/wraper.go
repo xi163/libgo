@@ -1,11 +1,11 @@
 package dbwraper
 
 import (
-	"github.com/xi123/libgo/utils/dbwraper/Gorm"
-	"github.com/xi123/libgo/utils/dbwraper/Mongo"
-	"github.com/xi123/libgo/utils/dbwraper/Redis"
-	"github.com/xi123/libgo/utils/dbwraper/Sql"
-	"github.com/xi123/libgo/utils/json"
+	"github.com/xi163/libgo/utils/dbwraper/Gorm"
+	"github.com/xi163/libgo/utils/dbwraper/Mongo"
+	"github.com/xi163/libgo/utils/dbwraper/Redis"
+	"github.com/xi163/libgo/utils/dbwraper/Sql"
+	"github.com/xi163/libgo/utils/json"
 )
 
 var Wrap = &Wraper{}

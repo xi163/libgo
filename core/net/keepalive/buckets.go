@@ -3,8 +3,8 @@ package keepalive
 import (
 	"time"
 
-	"github.com/xi123/libgo/core/base/cc"
-	"github.com/xi123/libgo/core/net/keepalive/bucket"
+	"github.com/xi163/libgo/core/base/cc"
+	"github.com/xi163/libgo/core/net/keepalive/bucket"
 )
 
 var (

@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/xi123/libgo/core/base/cc"
+	"github.com/xi163/libgo/core/base/cc"
 )
 
 var (

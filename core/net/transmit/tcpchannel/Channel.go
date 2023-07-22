@@ -3,9 +3,9 @@ package tcpchannel
 import (
 	"errors"
 
-	"github.com/xi123/libgo/core/net/transmit"
-	"github.com/xi123/libgo/utils/codec"
-	"github.com/xi123/libgo/utils/conv"
+	"github.com/xi163/libgo/core/net/transmit"
+	"github.com/xi163/libgo/utils/codec"
+	"github.com/xi163/libgo/utils/conv"
 
 	"net"
 )

@@ -5,13 +5,13 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/xi123/libgo/core/base/cc"
-	"github.com/xi123/libgo/core/base/mq"
-	"github.com/xi123/libgo/core/base/mq/ch"
-	"github.com/xi123/libgo/core/base/run"
-	"github.com/xi123/libgo/core/base/run/timeout"
-	"github.com/xi123/libgo/core/base/timer"
-	"github.com/xi123/libgo/core/cb"
+	"github.com/xi163/libgo/core/base/cc"
+	"github.com/xi163/libgo/core/base/mq"
+	"github.com/xi163/libgo/core/base/mq/ch"
+	"github.com/xi163/libgo/core/base/run"
+	"github.com/xi163/libgo/core/base/run/timeout"
+	"github.com/xi163/libgo/core/base/timer"
+	"github.com/xi163/libgo/core/cb"
 )
 
 // 超时任务池(固定, 非阻塞)

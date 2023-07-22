@@ -8,13 +8,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/xi123/libgo/core/net/conn"
-	"github.com/xi123/libgo/core/net/tcp/tcpclient"
-	"github.com/xi123/libgo/core/net/transmit"
-	wschannel_tst "github.com/xi123/libgo/core/net/transmit/wschannel/wschannel_tst"
-	logs "github.com/xi123/libgo/logs"
-	"github.com/xi123/libgo/utils/timestamp"
-	"github.com/xi123/libgo/utils/user_context"
+	"github.com/xi163/libgo/core/net/conn"
+	"github.com/xi163/libgo/core/net/tcp/tcpclient"
+	"github.com/xi163/libgo/core/net/transmit"
+	wschannel_tst "github.com/xi163/libgo/core/net/transmit/wschannel/wschannel_tst"
+	logs "github.com/xi163/libgo/logs"
+	"github.com/xi163/libgo/utils/timestamp"
+	"github.com/xi163/libgo/utils/user_context"
 )
 
 type EchoClient struct {

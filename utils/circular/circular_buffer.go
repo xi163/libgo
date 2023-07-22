@@ -1,8 +1,8 @@
 package circular
 
 import (
-	"github.com/xi123/libgo/logs"
-	"github.com/xi123/libgo/utils/bucket"
+	"github.com/xi163/libgo/logs"
+	"github.com/xi163/libgo/utils/bucket"
 )
 
 type Buffer[T any] interface {

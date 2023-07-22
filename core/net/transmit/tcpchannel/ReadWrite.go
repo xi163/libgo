@@ -3,7 +3,7 @@ package tcpchannel
 import (
 	"net"
 
-	logs "github.com/xi123/libgo/logs"
+	logs "github.com/xi163/libgo/logs"
 )
 
 // 读指定长度

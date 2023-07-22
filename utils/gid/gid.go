@@ -5,7 +5,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	// "github.com/xi123/libgo/logs"
+	// "github.com/xi163/libgo/logs"
 )
 
 func Getgid() int {

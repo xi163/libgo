@@ -4,8 +4,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/xi123/libgo/core/cb"
-	"github.com/xi123/libgo/core/net/conn"
+	"github.com/xi163/libgo/core/cb"
+	"github.com/xi163/libgo/core/net/conn"
 )
 
 var (

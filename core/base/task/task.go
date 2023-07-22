@@ -6,13 +6,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/xi123/libgo/core/base/cc"
-	"github.com/xi123/libgo/core/base/mq"
-	"github.com/xi123/libgo/core/base/mq/ch"
-	"github.com/xi123/libgo/core/base/mq/lq"
-	"github.com/xi123/libgo/core/base/run"
-	"github.com/xi123/libgo/core/base/watcher"
-	"github.com/xi123/libgo/core/cb"
+	"github.com/xi163/libgo/core/base/cc"
+	"github.com/xi163/libgo/core/base/mq"
+	"github.com/xi163/libgo/core/base/mq/ch"
+	"github.com/xi163/libgo/core/base/mq/lq"
+	"github.com/xi163/libgo/core/base/run"
+	"github.com/xi163/libgo/core/base/watcher"
+	"github.com/xi163/libgo/core/cb"
 )
 
 // <summary>

@@ -1,6 +1,6 @@
 package ch
 
-import "github.com/xi123/libgo/core/base/mq"
+import "github.com/xi163/libgo/core/base/mq"
 
 // <summary>
 // Queue chan消息队列

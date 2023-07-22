@@ -4,8 +4,8 @@ import (
 	"crypto/aes"
 	"fmt"
 
-	"github.com/xi123/libgo/utils/crypto/aes/ecb"
-	"github.com/xi123/libgo/utils/crypto/padding"
+	"github.com/xi163/libgo/utils/crypto/aes/ecb"
+	"github.com/xi163/libgo/utils/crypto/padding"
 )
 
 func ECBEncryptPKCS5(pt, key, IV []byte) []byte {

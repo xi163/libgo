@@ -3,10 +3,10 @@ package wschannel
 import (
 	"errors"
 
-	"github.com/xi123/libgo/core/net/transmit"
-	logs "github.com/xi123/libgo/logs"
-	"github.com/xi123/libgo/utils/codec"
-	"github.com/xi123/libgo/utils/conv"
+	"github.com/xi163/libgo/core/net/transmit"
+	logs "github.com/xi163/libgo/logs"
+	"github.com/xi163/libgo/utils/codec"
+	"github.com/xi163/libgo/utils/conv"
 
 	"github.com/gorilla/websocket"
 )

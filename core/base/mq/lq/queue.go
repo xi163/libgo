@@ -4,8 +4,8 @@ import (
 	"container/list"
 	"sync"
 
-	"github.com/xi123/libgo/core/base/mq"
-	"github.com/xi123/libgo/core/cb"
+	"github.com/xi163/libgo/core/base/mq"
+	"github.com/xi163/libgo/core/cb"
 )
 
 // <summary>

@@ -1,7 +1,7 @@
 package logs
 
 import (
-	"github.com/xi123/libgo/logs/color_linux"
+	"github.com/xi163/libgo/logs/color_linux"
 )
 
 var (

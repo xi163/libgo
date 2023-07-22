@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"errors"
 
-	"github.com/xi123/libgo/core/net/transmit"
+	"github.com/xi163/libgo/core/net/transmit"
 	"github.com/gorilla/websocket"
 )
 
