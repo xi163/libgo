@@ -5,24 +5,20 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/xi163/libgo/core/base/run/event"
-	"github.com/xi163/libgo/core/base/timer"
-	"github.com/xi163/libgo/core/cb"
-	"github.com/xi163/libgo/core/net/conn"
-	"github.com/xi163/libgo/utils/gid"
-	"github.com/xi163/libgo/utils/safe"
+	"github.com/cwloo/gonet/core/base/run/event"
+	"github.com/cwloo/gonet/core/base/timer"
+	"github.com/cwloo/gonet/core/cb"
+	"github.com/cwloo/gonet/core/net/conn"
+	"github.com/cwloo/gonet/utils/gid"
 )
 
-// <summary>
-// Proc 处理单元
-// <summary>
+// 处理单元
 type Proc interface {
 	cb.Proc
 	timer.Proc
 	event.Proc
 	Tid() int
 	Name() string
-	Busing() bool
 	AssertThis()
 	Runner() Processor
 	Args() Args
@@ -56,7 +52,7 @@ func NewProc(name string, r Processor) Proc {
 	return s
 }
 
-func (s proc) Name() string {
+func (s *proc) Name() string {
 	return s.name
 }
 
@@ -102,25 +98,20 @@ func (s *proc) Args() Args {
 }
 
 func (s *proc) Run() {
-	defer safe.Catch()
+	defer Catch()
 	s.assertRunner()
 	s.assertArgs()
 	s.run.Run(s)
 	s.run = nil
 }
 
-func (s *proc) Busing() bool {
-	s.assertArgs()
-	return s.args.Busing()
-}
-
-func (s proc) assertArgs() {
+func (s *proc) assertArgs() {
 	if s.args == nil {
 		panic(errors.New("proc.args is nil"))
 	}
 }
 
-func (s proc) assertRunner() {
+func (s *proc) assertRunner() {
 	if s.run == nil {
 		panic(errors.New("proc.run is nil"))
 	}
@@ -194,6 +185,26 @@ func (s *proc) Post(data *event.Data) {
 	s.Do(data)
 }
 
+func (s *proc) PostConnected(peer conn.Session, v ...any) {
+	s.Post(event.Create(event.EVTConnected, event.CreateConnected(peer, v...), nil))
+}
+
+func (s *proc) PostConnectedWith(handler cb.OnConnected, peer conn.Session, v ...any) {
+	s.Post(event.Create(event.EVTConnected, event.CreateConnectedWith(handler, peer, v...), nil))
+}
+
+func (s *proc) PostClosing(d time.Duration, peer conn.Session) {
+	s.Post(event.Create(event.EVTClosing, event.CreateClosing(d, peer), nil))
+}
+
+func (s *proc) PostClosed(peer conn.Session, reason conn.Reason, v ...any) {
+	s.Post(event.Create(event.EVTClosed, event.CreateClosed(peer, reason, v...), nil))
+}
+
+func (s *proc) PostClosedWith(handler cb.OnClosed, peer conn.Session, reason conn.Reason, v ...any) {
+	s.Post(event.Create(event.EVTClosed, event.CreateClosedWith(handler, peer, reason, v...), nil))
+}
+
 func (s *proc) PostRead(cmd uint32, msg any, peer conn.Session) {
 	s.Post(event.Create(event.EVTRead, event.CreateRead(cmd, msg, peer), nil))
 }
@@ -208,10 +219,6 @@ func (s *proc) PostCustom(cmd uint32, msg any, peer conn.Session) {
 
 func (s *proc) PostCustomWith(handler cb.CustomCallback, cmd uint32, msg any, peer conn.Session) {
 	s.Post(event.Create(event.EVTCustom, event.CreateCustomWith(handler, cmd, msg, peer), nil))
-}
-
-func (s *proc) PostClosing(d time.Duration, peer conn.Session) {
-	s.Post(event.Create(event.EVTClosing, event.CreateClosing(d, peer), nil))
 }
 
 func (s *proc) Dispatch(c Proc) {

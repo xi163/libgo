@@ -3,8 +3,8 @@ package callpool
 import (
 	"time"
 
-	"github.com/xi163/libgo/core/base/pool"
-	"github.com/xi163/libgo/core/cb"
+	"github.com/cwloo/gonet/core/base/pool"
+	"github.com/cwloo/gonet/core/cb"
 )
 
 // 回调池(固定, 非阻塞)
@@ -18,14 +18,6 @@ func Call(f cb.Functor) {
 
 func GoTimeout(d time.Duration, f cb.Functor, fn cb.Functor) {
 	calls.CallTimeout(d, f, fn)
-}
-
-func Num() int {
-	return calls.Num()
-}
-
-func ResetNum() {
-	calls.ResetNum()
 }
 
 func Start() {

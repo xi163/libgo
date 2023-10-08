@@ -3,24 +3,14 @@ package workers
 import (
 	"time"
 
-	"github.com/xi163/libgo/core/base/cc"
-	"github.com/xi163/libgo/core/base/run"
-	"github.com/xi163/libgo/core/base/run/cell"
-	"github.com/xi163/libgo/core/base/timer"
+	"github.com/cwloo/gonet/core/base/cc"
+	"github.com/cwloo/gonet/core/base/run"
+	"github.com/cwloo/gonet/core/base/run/cell"
+	"github.com/cwloo/gonet/core/base/timer"
 )
 
-// RunAfter(delay int32, args ...any) uint32
-// RunAfterWith(delay int32, handler timer.TimerCallback, args ...any) uint32
-// RunEvery(delay, interval int32, args ...any) uint32
-// RunEveryWith(delay, interval int32, handler timer.TimerCallback, args ...any) uint32
-// RemoveTimer(timerID uint32)
-// RemoveTimers()
-
-// <summary>
-// Args 协程启动参数
-// <summary>
+// 协程启动参数
 type Args struct {
-	state    cc.AtomFlag
 	stopping cc.Singal
 	worker   cell.Worker
 	ticker   *time.Ticker
@@ -33,7 +23,6 @@ type Args struct {
 func newArgs(proc run.Proc, d time.Duration, timerCb timer.TimerCallback, creator cell.WorkerCreator, args ...any) run.Args {
 	ticker, trigger := run.NewTicker(d)
 	s := &Args{
-		state:    cc.NewAtomFlag(),
 		stopping: cc.NewSingal(),
 		ticker:   ticker,
 		trigger:  trigger,
@@ -43,18 +32,6 @@ func newArgs(proc run.Proc, d time.Duration, timerCb timer.TimerCallback, creato
 	}
 	s.worker = creator.Create(proc, args...)
 	return s
-}
-
-func (s *Args) SetState(busy bool) {
-	if busy {
-		s.state.Set()
-	} else {
-		s.state.Reset()
-	}
-}
-
-func (s *Args) Busing() bool {
-	return s.state.IsSet()
 }
 
 func (s *Args) Quit() bool {

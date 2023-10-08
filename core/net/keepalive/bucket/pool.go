@@ -5,16 +5,14 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/xi163/libgo/core/base/cc"
-	"github.com/xi163/libgo/core/base/pipe"
-	"github.com/xi163/libgo/core/base/run/timer_wheel"
-	"github.com/xi163/libgo/core/base/timer"
-	"github.com/xi163/libgo/core/cb"
+	"github.com/cwloo/gonet/core/base/cc"
+	"github.com/cwloo/gonet/core/base/pipe"
+	"github.com/cwloo/gonet/core/base/run/timer_wheel"
+	"github.com/cwloo/gonet/core/base/timer"
+	"github.com/cwloo/gonet/core/cb"
 )
 
-// <summary>
-// Pool 定时轮盘池，处理空闲会话(多生产者，多消费者)
-// <summary>
+// 定时轮盘池，处理空闲会话(多生产者，多消费者)
 type Pool interface {
 	D() time.Duration
 	Bucketsz() int32
@@ -107,9 +105,9 @@ func (s *pool) expand(size int32, d time.Duration, num int32) {
 func (s *pool) new_pipe(id int32, size int32, d time.Duration) pipe.Pipe {
 	s.assertHandler()
 	s.assertTimerCb()
-	nonblock := true //非阻塞
-	tick := true     //开启tick检查
-	// d := time.Second //tick间隔时间
+	nonblock := true
+	tick := true
+	// d := time.Second
 	runner := timer_wheel.NewProcessor(size, tick, d, s.handler, s.timerCb)
 	pipe := pipe.NewPipe(id, "bucket.pipe", 500, nonblock, runner)
 	return pipe

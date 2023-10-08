@@ -3,8 +3,8 @@ package connpool
 import (
 	"time"
 
-	"github.com/xi163/libgo/core/base/pool"
-	"github.com/xi163/libgo/core/cb"
+	"github.com/cwloo/gonet/core/base/pool"
+	"github.com/cwloo/gonet/core/cb"
 )
 
 // 回调池(固定, 阻塞)
@@ -18,14 +18,6 @@ func Do(f cb.Functor) {
 
 func GoTimeout(d time.Duration, f cb.Functor, fn cb.Functor) {
 	conns.DoTimeout(d, f, fn)
-}
-
-func Num() int {
-	return conns.Num()
-}
-
-func ResetNum() {
-	conns.ResetNum()
 }
 
 func Start() {

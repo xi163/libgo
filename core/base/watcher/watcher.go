@@ -3,13 +3,11 @@ package watcher
 import (
 	"sync"
 
-	"github.com/xi163/libgo/core/base/cc"
-	"github.com/xi163/libgo/core/base/mq"
+	"github.com/cwloo/gonet/core/base/cc"
+	"github.com/cwloo/gonet/core/base/mq"
 )
 
-// <summary>
-// Watcher 监视器、看门狗
-// <summary>
+// 监视器、看门狗
 type Watcher interface {
 	Push(data any)
 	Start(handler func(v ...any) (exit bool))

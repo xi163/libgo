@@ -3,37 +3,21 @@ package gos
 import (
 	"time"
 
-	"github.com/xi163/libgo/core/base/cc"
-	"github.com/xi163/libgo/core/base/run"
-	"github.com/xi163/libgo/core/base/timer"
+	"github.com/cwloo/gonet/core/base/cc"
+	"github.com/cwloo/gonet/core/base/run"
+	"github.com/cwloo/gonet/core/base/timer"
 )
 
-// <summary>
-// Args 协程启动参数
-// <summary>
+// 协程启动参数
 type Args struct {
-	state    cc.AtomFlag
 	stopping cc.Singal
 }
 
 func newArgs(proc run.Proc) run.Args {
 	s := &Args{
-		state:    cc.NewAtomFlag(),
 		stopping: cc.NewSingal(),
 	}
 	return s
-}
-
-func (s *Args) SetState(busy bool) {
-	if busy {
-		s.state.Set()
-	} else {
-		s.state.Reset()
-	}
-}
-
-func (s *Args) Busing() bool {
-	return s.state.IsSet()
 }
 
 func (s *Args) Quit() bool {

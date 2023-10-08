@@ -14,54 +14,48 @@ import (
 	"sync"
 	"time"
 
-	"github.com/xi163/libgo/core/base/cc"
-	"github.com/xi163/libgo/core/base/mq/lq"
-	"github.com/xi163/libgo/core/base/pipe"
-	"github.com/xi163/libgo/core/base/run"
-	"github.com/xi163/libgo/utils/conv"
-	"github.com/xi163/libgo/utils/gid"
+	"github.com/cwloo/gonet/core/base/cc"
+	"github.com/cwloo/gonet/core/base/mq/lq"
+	"github.com/cwloo/gonet/core/base/pipe"
+	"github.com/cwloo/gonet/core/base/run"
+	"github.com/cwloo/gonet/utils/Fn"
+	"github.com/cwloo/gonet/utils/conv"
+	"github.com/cwloo/gonet/utils/gid"
 )
 
 var (
 	i32  = cc.NewI32()
-	TAG  = []byte{'T', 'P'}
-	CHR  = []string{"F", "E", "W", "I", "T", "D"}
-	LVL  = []string{"FATAL", "ERROR", "WARNING", "INFO", "TRACE", "DEBUG"}
+	UTC  = []byte{'T', 'P'}
+	CHR  = []string{"F", "E", "W", "C", "I", "D", "T"}
+	LVL  = []string{"FATAL", "ERROR", "WARN", "CRITICAL", "INFO", "DEBUG", "TRACE"}
 	MODE = []string{"M_STDOUT_ONLY", "M_FILE_ONLY", "M_STDOUT_FILE"}
 	bio  = 0
 )
 
-// <summary>
-// Logger 异步日志系统
-// <summary>
+// 异步日志系统
 type Logger interface {
 	SetPrename(name string)
 	GetPrename() string
 	TimezoneString() string
-	GetTimezone() Timezone
 	SetTimezone(timezone Timezone)
-	ModeString() string
-	GetMode() Mode
-	SetMode(mode Mode)
-	StyleString() string
-	GetStyle() Style
-	SetStyle(style Style)
+	GetTimezone() Timezone
 	LevelString() string
-	GetLevel() Level
 	SetLevel(level Level)
+	GetLevel() Level
+	ModeString() string
+	SetMode(mode Mode)
+	GetMode() Mode
+	StyleString() string
+	SetStyle(style Style)
+	GetStyle() Style
 	SetColor(level Level, prefix, context int)
 	Init(dir string, prename string, logsize int64)
 	Sprint(level Level, style Style, skip int, format string, v ...any) (string, string)
-	Write(level Level, stack string, style Style, skip int, format string, v ...any)
+	Write(stack string, level Level, style Style, skip int, format string, v ...any)
 	Wait()
 	Close()
-	Num() int
-	ResetNum()
 }
 
-// <summary>
-// logger 异步日志系统
-// <summary>
 type logger struct {
 	utcOk   bool
 	mkdir   bool
@@ -76,7 +70,6 @@ type logger struct {
 	tm      time.Time
 	arg     *unsafeArg
 	pipe    pipe.Pipe
-	c       cc.Counter
 	l       *sync.RWMutex
 	bio     *bufio.Writer
 	l_sync  *sync.Mutex
@@ -90,7 +83,6 @@ func NewLogger() Logger {
 		utcOk:  true,
 		pid:    os.Getpid(),
 		arg:    newUnsafeArg(),
-		c:      cc.NewAtomCounter(),
 		l:      &sync.RWMutex{},
 		l_sync: &sync.Mutex{},
 		flag:   cc.NewAtomFlag()}
@@ -114,11 +106,6 @@ func (s *logger) TimezoneString() string {
 	return s.arg.timezoneString()
 }
 
-// GetTimezone
-func (s *logger) GetTimezone() Timezone {
-	return s.arg.getTimezone()
-}
-
 // SetTimezone
 func (s *logger) SetTimezone(timezone Timezone) {
 	switch timezone == s.arg.getTimezone() {
@@ -132,14 +119,37 @@ func (s *logger) SetTimezone(timezone Timezone) {
 	}
 }
 
+// GetTimezone
+func (s *logger) GetTimezone() Timezone {
+	return s.arg.getTimezone()
+}
+
+// LevelString
+func (s *logger) LevelString() string {
+	return s.arg.levelString()
+}
+
+// SetLevel
+func (s *logger) SetLevel(level Level) {
+	switch level == s.arg.getLevel() {
+	case false:
+		switch s.arg.setLevel(level) {
+		case true:
+			s.setting(false)
+		default:
+			s.setting(false)
+		}
+	}
+}
+
+// GetLevel
+func (s *logger) GetLevel() Level {
+	return s.arg.getLevel()
+}
+
 // ModeString
 func (s *logger) ModeString() string {
 	return s.arg.modeString()
-}
-
-// GetMode
-func (s *logger) GetMode() Mode {
-	return s.arg.getMode()
 }
 
 // SetMode
@@ -155,14 +165,14 @@ func (s *logger) SetMode(mode Mode) {
 	}
 }
 
+// GetMode
+func (s *logger) GetMode() Mode {
+	return s.arg.getMode()
+}
+
 // StyleString
 func (s *logger) StyleString() string {
 	return s.arg.styleString()
-}
-
-// GetStyle
-func (s *logger) GetStyle() Style {
-	return s.arg.getStyle()
 }
 
 // SetStyle
@@ -178,27 +188,9 @@ func (s *logger) SetStyle(style Style) {
 	}
 }
 
-// LevelString
-func (s *logger) LevelString() string {
-	return s.arg.levelString()
-}
-
-// GetLevel
-func (s *logger) GetLevel() Level {
-	return s.arg.getLevel()
-}
-
-// SetLevel
-func (s *logger) SetLevel(level Level) {
-	switch level == s.arg.getLevel() {
-	case false:
-		switch s.arg.setLevel(level) {
-		case true:
-			s.setting(false)
-		default:
-			s.setting(false)
-		}
-	}
+// GetStyle
+func (s *logger) GetStyle() Style {
+	return s.arg.getStyle()
 }
 
 // check
@@ -234,7 +226,7 @@ func (s *logger) update(tm *time.Time) (ok bool) {
 	}
 	return
 ERR:
-	ErrorfTLF("error")
+	Errorf_fl_fn("error")
 	return
 }
 
@@ -251,8 +243,8 @@ func (s *logger) SetColor(level Level, prefix, context int) {
 }
 
 // setting
-func (s *logger) setting(update bool) {
-	switch update {
+func (s *logger) setting(v bool) {
+	switch v {
 	case true:
 		t := time.Now()
 		var tm time.Time
@@ -312,21 +304,27 @@ func (s *logger) Wait() {
 	s.l_sync.Unlock()
 }
 
-// checkDir
-func (s *logger) checkDir() {
-	if !s.mkdir {
-		dir := filepath.Dir(s.prefix)
-		_, err := os.Stat(dir)
-		if err != nil && os.IsNotExist(err) {
-			err := os.MkdirAll(dir, 0777)
-			if err != nil {
-				panic(err.Error())
+// mkDir
+func (s *logger) mkDir() bool {
+	switch s.mkdir {
+	case false:
+		switch s.prefix {
+		case "":
+		default:
+			dir := filepath.Dir(s.prefix)
+			_, err := os.Stat(dir)
+			if err != nil && os.IsNotExist(err) {
+				err := os.MkdirAll(dir, 0777)
+				if err != nil {
+					panic(err.Error())
+				}
+				s.mkdir = true
+			} else {
+				s.mkdir = true
 			}
-			s.mkdir = true
-		} else {
-			s.mkdir = true
 		}
 	}
+	return s.mkdir
 }
 
 // Init
@@ -339,10 +337,6 @@ func (s *logger) Init(dir string, prename string, logsize int64) {
 		s.prefix = dir + "/" + prename + "."
 	} else {
 		s.prefix = dir + "/"
-	}
-	switch s.arg.getMode() {
-	case M_FILE_ONLY, M_STDOUT_FILE:
-		s.checkDir()
 	}
 }
 
@@ -370,17 +364,17 @@ func (s *logger) format(level Level, style Style, skip int) (prefix string) {
 	dt := tm.Format("15:04:05.000000")
 	tid := gid.Getgid()
 	switch style {
-	case F_DETAIL, F_DETAIL_SYNC: //F_DETAIL
+	case F_DETAIL, F_DETAIL_SYNC:
 		//W101106 CST 21:17:00.024254 199 main.go:103][main] server.run xxx
 		pc, f, line, _ := runtime.Caller(skip)
 		_, file := path.Split(f)
-		pg, fn := _fn(runtime.FuncForPC(pc).Name())
+		pg, fn := Fn.Split(runtime.FuncForPC(pc).Name())
 		var b strings.Builder
 		switch ok {
 		case true:
-			b.WriteByte(TAG[0])
+			b.WriteByte(UTC[0])
 		default:
-			b.WriteByte(TAG[1])
+			b.WriteByte(UTC[1])
 		}
 		b.WriteString(CHR[level])
 		b.WriteString(strconv.Itoa(s.pid))
@@ -388,7 +382,7 @@ func (s *logger) format(level Level, style Style, skip int) (prefix string) {
 		b.WriteString(" ")
 		switch ok {
 		case true:
-			b.WriteString(_tz(s.arg.getTimezone()))
+			b.WriteString(String(s.arg.getTimezone()))
 			b.WriteString(" ")
 			b.WriteString(dt)
 			b.WriteString(" ")
@@ -404,14 +398,14 @@ func (s *logger) format(level Level, style Style, skip int) (prefix string) {
 		b.WriteString(fn)
 		b.WriteString(" ")
 		prefix = b.String()
-	case F_TMSTMP, F_TMSTMP_SYNC: //F_TMSTMP
+	case F_TMSTMP, F_TMSTMP_SYNC:
 		//W101106 CST 21:17:00.024254] xxx
 		var b strings.Builder
 		switch ok {
 		case true:
-			b.WriteByte(TAG[0])
+			b.WriteByte(UTC[0])
 		default:
-			b.WriteByte(TAG[1])
+			b.WriteByte(UTC[1])
 		}
 		b.WriteString(CHR[level])
 		b.WriteString(strconv.Itoa(s.pid))
@@ -419,22 +413,22 @@ func (s *logger) format(level Level, style Style, skip int) (prefix string) {
 		switch ok {
 		case true:
 			b.WriteString(" ")
-			b.WriteString(_tz(s.arg.getTimezone()))
+			b.WriteString(String(s.arg.getTimezone()))
 			b.WriteString(" ")
 			b.WriteString(dt)
 		}
 		b.WriteString("] ")
 		prefix = b.String()
-	case F_FN, F_FN_SYNC: //F_FN
+	case F_FN, F_FN_SYNC:
 		//W101106][main] server.run xxx
 		pc, _, _, _ := runtime.Caller(skip)
-		pg, fn := _fn(runtime.FuncForPC(pc).Name())
+		pg, fn := Fn.Split(runtime.FuncForPC(pc).Name())
 		var b strings.Builder
 		switch ok {
 		case true:
-			b.WriteByte(TAG[0])
+			b.WriteByte(UTC[0])
 		default:
-			b.WriteByte(TAG[1])
+			b.WriteByte(UTC[1])
 		}
 		b.WriteString(CHR[level])
 		b.WriteString(strconv.Itoa(s.pid))
@@ -445,16 +439,16 @@ func (s *logger) format(level Level, style Style, skip int) (prefix string) {
 		b.WriteString(fn)
 		b.WriteString(" ")
 		prefix = b.String()
-	case F_TMSTMP_FN, F_TMSTMP_FN_SYNC: //F_TMSTMP_FN
+	case F_TMSTMP_FN, F_TMSTMP_FN_SYNC:
 		//W101106 CST 21:17:00.024254][main] server.run xxx
 		pc, _, _, _ := runtime.Caller(skip)
-		pg, fn := _fn(runtime.FuncForPC(pc).Name())
+		pg, fn := Fn.Split(runtime.FuncForPC(pc).Name())
 		var b strings.Builder
 		switch ok {
 		case true:
-			b.WriteByte(TAG[0])
+			b.WriteByte(UTC[0])
 		default:
-			b.WriteByte(TAG[1])
+			b.WriteByte(UTC[1])
 		}
 		b.WriteString(CHR[level])
 		b.WriteString(strconv.Itoa(s.pid))
@@ -462,7 +456,7 @@ func (s *logger) format(level Level, style Style, skip int) (prefix string) {
 		switch ok {
 		case true:
 			b.WriteString(" ")
-			b.WriteString(_tz(s.arg.getTimezone()))
+			b.WriteString(String(s.arg.getTimezone()))
 			b.WriteString(" ")
 			b.WriteString(dt)
 		}
@@ -472,16 +466,16 @@ func (s *logger) format(level Level, style Style, skip int) (prefix string) {
 		b.WriteString(fn)
 		b.WriteString(" ")
 		prefix = b.String()
-	case F_FL, F_FL_SYNC: //F_FL
+	case F_FL, F_FL_SYNC:
 		//W101106 main.go:103] xxx
 		_, f, line, _ := runtime.Caller(skip)
 		_, file := path.Split(f)
 		var b strings.Builder
 		switch ok {
 		case true:
-			b.WriteByte(TAG[0])
+			b.WriteByte(UTC[0])
 		default:
-			b.WriteByte(TAG[1])
+			b.WriteByte(UTC[1])
 		}
 		b.WriteString(CHR[level])
 		b.WriteString(strconv.Itoa(s.pid))
@@ -492,16 +486,16 @@ func (s *logger) format(level Level, style Style, skip int) (prefix string) {
 		b.WriteString(strconv.Itoa(line))
 		b.WriteString("] ")
 		prefix = b.String()
-	case F_TMSTMP_FL, F_TMSTMP_FL_SYNC: //F_TMSTMP_FL
+	case F_TMSTMP_FL, F_TMSTMP_FL_SYNC:
 		//W101106 CST 21:17:00.024254 main.go:103] xxx
 		_, f, line, _ := runtime.Caller(skip)
 		_, file := path.Split(f)
 		var b strings.Builder
 		switch ok {
 		case true:
-			b.WriteByte(TAG[0])
+			b.WriteByte(UTC[0])
 		default:
-			b.WriteByte(TAG[1])
+			b.WriteByte(UTC[1])
 		}
 		b.WriteString(CHR[level])
 		b.WriteString(strconv.Itoa(s.pid))
@@ -509,7 +503,7 @@ func (s *logger) format(level Level, style Style, skip int) (prefix string) {
 		b.WriteString(" ")
 		switch ok {
 		case true:
-			b.WriteString(_tz(s.arg.getTimezone()))
+			b.WriteString(String(s.arg.getTimezone()))
 			b.WriteString(" ")
 			b.WriteString(dt)
 			b.WriteString(" ")
@@ -519,17 +513,17 @@ func (s *logger) format(level Level, style Style, skip int) (prefix string) {
 		b.WriteString(strconv.Itoa(line))
 		b.WriteString("] ")
 		prefix = b.String()
-	case F_FL_FN, F_FL_FN_SYNC: //F_FL_FN
+	case F_FL_FN, F_FL_FN_SYNC:
 		//W101106 main.go:103][main] server.run xxx
 		pc, f, line, _ := runtime.Caller(skip)
 		_, file := path.Split(f)
-		pg, fn := _fn(runtime.FuncForPC(pc).Name())
+		pg, fn := Fn.Split(runtime.FuncForPC(pc).Name())
 		var b strings.Builder
 		switch ok {
 		case true:
-			b.WriteByte(TAG[0])
+			b.WriteByte(UTC[0])
 		default:
-			b.WriteByte(TAG[1])
+			b.WriteByte(UTC[1])
 		}
 		b.WriteString(CHR[level])
 		b.WriteString(strconv.Itoa(s.pid))
@@ -544,17 +538,17 @@ func (s *logger) format(level Level, style Style, skip int) (prefix string) {
 		b.WriteString(fn)
 		b.WriteString(" ")
 		prefix = b.String()
-	case F_TMSTMP_FL_FN, F_TMSTMP_FL_FN_SYNC: //F_TMSTMP_FL_FN
+	case F_TMSTMP_FL_FN, F_TMSTMP_FL_FN_SYNC:
 		//W101106 CST 21:17:00.024254 main.go:103][main] server.run xxx
 		pc, f, line, _ := runtime.Caller(skip)
 		_, file := path.Split(f)
-		pg, fn := _fn(runtime.FuncForPC(pc).Name())
+		pg, fn := Fn.Split(runtime.FuncForPC(pc).Name())
 		var b strings.Builder
 		switch ok {
 		case true:
-			b.WriteByte(TAG[0])
+			b.WriteByte(UTC[0])
 		default:
-			b.WriteByte(TAG[1])
+			b.WriteByte(UTC[1])
 		}
 		b.WriteString(CHR[level])
 		b.WriteString(strconv.Itoa(s.pid))
@@ -562,7 +556,7 @@ func (s *logger) format(level Level, style Style, skip int) (prefix string) {
 		b.WriteString(" ")
 		switch ok {
 		case true:
-			b.WriteString(_tz(s.arg.getTimezone()))
+			b.WriteString(String(s.arg.getTimezone()))
 			b.WriteString(" ")
 			b.WriteString(dt)
 			b.WriteString(" ")
@@ -576,28 +570,30 @@ func (s *logger) format(level Level, style Style, skip int) (prefix string) {
 		b.WriteString(fn)
 		b.WriteString(" ")
 		prefix = b.String()
-	case F_TEXT, F_TEXT_SYNC: //F_TEXT
+	case F_TEXT, F_TEXT_SYNC:
 		//W101106] xxx
 		var b strings.Builder
 		switch ok {
 		case true:
-			b.WriteByte(TAG[0])
+			b.WriteByte(UTC[0])
 		default:
-			b.WriteByte(TAG[1])
+			b.WriteByte(UTC[1])
 		}
 		b.WriteString(CHR[level])
 		b.WriteString(strconv.Itoa(s.pid))
 		b.WriteString(s.name(false))
 		b.WriteString("] ")
 		prefix = b.String()
-	default: //F_PURE
+	case F_PURE, F_PURE_SYNC:
+		fallthrough
+	default:
 		//xxx
 		var b bytes.Buffer
 		switch ok {
 		case true:
-			b.WriteByte(TAG[0])
+			b.WriteByte(UTC[0])
 		default:
-			b.WriteByte(TAG[1])
+			b.WriteByte(UTC[1])
 		}
 		b.WriteString(CHR[level])
 		b.WriteString(s.name(true))
@@ -644,25 +640,27 @@ func (s *logger) writeStack(stack string) {
 // write
 func (s *logger) write(msg string, pos int, style Style) {
 	switch style {
-	case F_DETAIL, F_DETAIL_SYNC: //F_DETAIL
+	case F_DETAIL, F_DETAIL_SYNC:
 		s.write_(msg[1:])
-	case F_TMSTMP, F_TMSTMP_SYNC: //F_TMSTMP
+	case F_TMSTMP, F_TMSTMP_SYNC:
 		s.write_(msg[1:])
-	case F_FN, F_FN_SYNC: //F_FN
+	case F_FN, F_FN_SYNC:
 		s.write_(msg[1:])
-	case F_TMSTMP_FN, F_TMSTMP_FN_SYNC: //F_TMSTMP_FN
+	case F_TMSTMP_FN, F_TMSTMP_FN_SYNC:
 		s.write_(msg[1:])
-	case F_FL, F_FL_SYNC: //F_FL
+	case F_FL, F_FL_SYNC:
 		s.write_(msg[1:])
-	case F_TMSTMP_FL, F_TMSTMP_FL_SYNC: //F_TMSTMP_FL
+	case F_TMSTMP_FL, F_TMSTMP_FL_SYNC:
 		s.write_(msg[1:])
-	case F_FL_FN, F_FL_FN_SYNC: //F_FL_FN
+	case F_FL_FN, F_FL_FN_SYNC:
 		s.write_(msg[1:])
-	case F_TMSTMP_FL_FN, F_TMSTMP_FL_FN_SYNC: //F_TMSTMP_FL_FN
+	case F_TMSTMP_FL_FN, F_TMSTMP_FL_FN_SYNC:
 		s.write_(msg[1:])
-	case F_TEXT, F_TEXT_SYNC: //F_TEXT
+	case F_TEXT, F_TEXT_SYNC:
 		s.write_(msg[1:])
-	default: //F_PURE
+	case F_PURE, F_PURE_SYNC:
+		fallthrough
+	default:
 		s.write_(msg[2:])
 	}
 }
@@ -670,25 +668,27 @@ func (s *logger) write(msg string, pos int, style Style) {
 // write_bio
 func (s *logger) write_bio(msg string, pos int, style Style) {
 	switch style {
-	case F_DETAIL, F_DETAIL_SYNC: //F_DETAIL
+	case F_DETAIL, F_DETAIL_SYNC:
 		s.write_bio_(msg[1:])
-	case F_TMSTMP, F_TMSTMP_SYNC: //F_TMSTMP
+	case F_TMSTMP, F_TMSTMP_SYNC:
 		s.write_bio_(msg[1:])
-	case F_FN, F_FN_SYNC: //F_FN
+	case F_FN, F_FN_SYNC:
 		s.write_bio_(msg[1:])
-	case F_TMSTMP_FN, F_TMSTMP_FN_SYNC: //F_TMSTMP_FN
+	case F_TMSTMP_FN, F_TMSTMP_FN_SYNC:
 		s.write_bio_(msg[1:])
-	case F_FL, F_FL_SYNC: //F_FL
+	case F_FL, F_FL_SYNC:
 		s.write_bio_(msg[1:])
-	case F_TMSTMP_FL, F_TMSTMP_FL_SYNC: //F_TMSTMP_FL
+	case F_TMSTMP_FL, F_TMSTMP_FL_SYNC:
 		s.write_bio_(msg[1:])
-	case F_FL_FN, F_FL_FN_SYNC: //F_FL_FN
+	case F_FL_FN, F_FL_FN_SYNC:
 		s.write_bio_(msg[1:])
-	case F_TMSTMP_FL_FN, F_TMSTMP_FL_FN_SYNC: //F_TMSTMP_FL_FN
+	case F_TMSTMP_FL_FN, F_TMSTMP_FL_FN_SYNC:
 		s.write_bio_(msg[1:])
-	case F_TEXT, F_TEXT_SYNC: //F_TEXT
+	case F_TEXT, F_TEXT_SYNC:
 		s.write_bio_(msg[1:])
-	default: //F_PURE
+	case F_PURE, F_PURE_SYNC:
+		fallthrough
+	default:
 		s.write_bio_(msg[2:])
 	}
 }
@@ -731,7 +731,7 @@ func (s *logger) Sprint(level Level, style Style, skip int, format string, v ...
 }
 
 // Write
-func (s *logger) Write(level Level, stack string, style Style, skip int, format string, v ...any) {
+func (s *logger) Write(stack string, level Level, style Style, skip int, format string, v ...any) {
 	if s.check(level) {
 		prefix, content := s.Sprint(level, style, skip, format, v...)
 		s.push(prefix, content+"\n", len(prefix), style, stack)
@@ -746,7 +746,7 @@ func (s *logger) push(prefix, content string, pos int, style Style, stack string
 
 // shift
 func (s *logger) shift(tm *time.Time) {
-	if tm.Day() != s.day {
+	if tm.Day() != s.day { //new day
 		s.close()
 		// 2006/01/02 15:04:05.000000
 		YMD := tm.Format("2006-01-02")
@@ -756,21 +756,9 @@ func (s *logger) shift(tm *time.Time) {
 		}, "")
 		_, err := os.Stat(s.path)
 		if err != nil && os.IsNotExist(err) {
-		} else {
-			os.Remove(s.path)
-		}
-		s.open(s.path)
-		s.day = tm.Day()
-	} else {
-		sta, err := os.Stat(s.path)
-		if err != nil && os.IsNotExist(err) {
-			s.close()
 			s.open(s.path)
-			return
-		}
-		if sta.Size() < s.size {
-		} else {
-			s.close()
+			s.day = tm.Day()
+		} else { //existed
 			YMD := tm.Format("2006-01-02")
 			HMS := tm.Format("15.04.05.000000")
 			s.path = strings.Join([]string{
@@ -779,18 +767,92 @@ func (s *logger) shift(tm *time.Time) {
 			_, err := os.Stat(s.path)
 			if err != nil && os.IsNotExist(err) {
 				s.open(s.path)
-			} else {
-				i := 0
-				for {
+				s.day = tm.Day()
+			} else { //existed
+				for i := 0; ; {
 					s.path = strings.Join([]string{
 						s.prefix, strconv.Itoa(s.pid), "_", YMD, ".", HMS, ".", strconv.Itoa(i), ".log",
 					}, "")
 					_, err := os.Stat(s.path)
 					if err != nil && os.IsNotExist(err) {
 						s.open(s.path)
+						s.day = tm.Day()
 						break
-					} else {
+					} else { //existed
 						i++
+					}
+				}
+			}
+		}
+	} else { //current day
+		sta, err := os.Stat(s.path)
+		if err != nil && os.IsNotExist(err) {
+			YMD := tm.Format("2006-01-02")
+			HMS := tm.Format("15.04.05")
+			s.path = strings.Join([]string{
+				s.prefix, strconv.Itoa(s.pid), "_", YMD, ".", HMS, ".log",
+			}, "")
+			_, err := os.Stat(s.path)
+			if err != nil && os.IsNotExist(err) {
+				s.open(s.path)
+			} else { //existed
+				YMD := tm.Format("2006-01-02")
+				HMS := tm.Format("15.04.05.000000")
+				s.path = strings.Join([]string{
+					s.prefix, strconv.Itoa(s.pid), "_", YMD, ".", HMS, ".log",
+				}, "")
+				_, err := os.Stat(s.path)
+				if err != nil && os.IsNotExist(err) {
+					s.open(s.path)
+				} else { //existed
+					for i := 0; ; {
+						s.path = strings.Join([]string{
+							s.prefix, strconv.Itoa(s.pid), "_", YMD, ".", HMS, ".", strconv.Itoa(i), ".log",
+						}, "")
+						_, err := os.Stat(s.path)
+						if err != nil && os.IsNotExist(err) {
+							s.open(s.path)
+							break
+						} else { //existed
+							i++
+						}
+					}
+				}
+			}
+		} else { //existed
+			if sta.Size() < s.size {
+			} else {
+				s.close()
+				YMD := tm.Format("2006-01-02")
+				HMS := tm.Format("15.04.05")
+				s.path = strings.Join([]string{
+					s.prefix, strconv.Itoa(s.pid), "_", YMD, ".", HMS, ".log",
+				}, "")
+				_, err := os.Stat(s.path)
+				if err != nil && os.IsNotExist(err) {
+					s.open(s.path)
+				} else { //existed
+					YMD := tm.Format("2006-01-02")
+					HMS := tm.Format("15.04.05.000000")
+					s.path = strings.Join([]string{
+						s.prefix, strconv.Itoa(s.pid), "_", YMD, ".", HMS, ".log",
+					}, "")
+					_, err := os.Stat(s.path)
+					if err != nil && os.IsNotExist(err) {
+						s.open(s.path)
+					} else { //existed
+						for i := 0; ; {
+							s.path = strings.Join([]string{
+								s.prefix, strconv.Itoa(s.pid), "_", YMD, ".", HMS, ".", strconv.Itoa(i), ".log",
+							}, "")
+							_, err := os.Stat(s.path)
+							if err != nil && os.IsNotExist(err) {
+								s.open(s.path)
+								break
+							} else { //existed
+								i++
+							}
+						}
 					}
 				}
 			}
@@ -820,18 +882,19 @@ func getlevel(c byte) Level {
 		return LVL_ERROR
 	case 'W':
 		return LVL_WARN
+	case 'C':
+		return LVL_CRITICAL
 	case 'I':
 		return LVL_INFO
-	case 'T':
-		return LVL_TRACE
 	case 'D':
 		return LVL_DEBUG
+	case 'T':
+		return LVL_TRACE
 	}
-	panic(errors.New("error"))
+	panic("error")
 }
 
 func (s *logger) handler(msg any, args ...any) (exit bool) {
-	// s.c.Up()
 	switch msg := msg.(type) {
 	case *MessageT:
 		// messageT, _ := msg.(*MessageT)
@@ -844,43 +907,46 @@ func (s *logger) handler(msg any, args ...any) (exit bool) {
 		stack := message.second
 		prefix := msgData.first
 		// content := msgData.second
-		switch s.arg.getMode() {
-		case M_FILE_ONLY, M_STDOUT_FILE:
-			if s.prefix == "" {
-				break
-			}
-			switch prefix[0] {
-			case TAG[0]:
-				s.checkDir()
-				var tm time.Time
-				s.get(&tm)
-				s.shift(&tm)
-			}
-		}
 		mode := s.arg.getMode()
-		if mode > M_STDOUT_ONLY && (!s.mkdir || prefix[0] == TAG[1]) {
-			mode = M_STDOUT_ONLY
+		switch mode {
+		case M_FILE_ONLY, M_STDOUT_FILE:
+			switch prefix[0] {
+			case UTC[0]:
+				switch s.mkDir() {
+				default:
+					mode = M_STDOUT_ONLY
+				case true:
+					var tm time.Time
+					s.get(&tm)
+					s.shift(&tm)
+				}
+			case UTC[1]:
+				mode = M_STDOUT_ONLY
+			}
 		}
 		level := getlevel(conv.StrToByte(prefix)[1])
 		switch level {
 		case LVL_FATAL:
 			switch mode {
-			case M_FILE_ONLY, M_STDOUT_FILE:
+			case M_STDOUT_ONLY:
+				s.stdoutbuf(msgData, pos, level, style, stack)
+			case M_FILE_ONLY:
+				s.writeMsg(msgData, pos, style)
+				s.writeStack(stack)
+			case M_STDOUT_FILE:
+				s.stdoutbuf(msgData, pos, level, style, stack)
 				s.writeMsg(msgData, pos, style)
 				s.writeStack(stack)
 			}
+		case LVL_ERROR, LVL_WARN, LVL_CRITICAL, LVL_INFO, LVL_DEBUG, LVL_TRACE:
 			switch mode {
-			case M_STDOUT_ONLY, M_STDOUT_FILE:
-				s.stdoutbuf(level, msgData, pos, style, stack)
-			}
-		case LVL_ERROR, LVL_WARN, LVL_INFO, LVL_TRACE, LVL_DEBUG:
-			switch mode {
-			case M_FILE_ONLY, M_STDOUT_FILE:
+			case M_STDOUT_ONLY:
+				s.stdoutbuf(msgData, pos, level, style, "")
+			case M_FILE_ONLY:
 				s.writeMsg(msgData, pos, style)
-			}
-			switch mode {
-			case M_STDOUT_ONLY, M_STDOUT_FILE:
-				s.stdoutbuf(level, msgData, pos, style, "")
+			case M_STDOUT_FILE:
+				s.stdoutbuf(msgData, pos, level, style, "")
+				s.writeMsg(msgData, pos, style)
 			}
 		}
 		msgData.Put()
@@ -892,80 +958,84 @@ func (s *logger) handler(msg any, args ...any) (exit bool) {
 	return
 }
 
-func (s *logger) stdoutbuf(level Level, msg *Msg, pos int, style Style, stack string) {
+func (s *logger) stdoutbuf(msg *Msg, pos int, level Level, style Style, stack string) {
 	switch level {
 	case LVL_FATAL:
 		switch style {
-		case F_DETAIL, F_DETAIL_SYNC: //F_DETAIL
+		case F_DETAIL, F_DETAIL_SYNC:
 			Print(color[level][0], msg.first[1:])
 			Print(color[level][1], msg.second)
 			Print(color[level][0], stack)
-		case F_TMSTMP, F_TMSTMP_SYNC: //F_TMSTMP
+		case F_TMSTMP, F_TMSTMP_SYNC:
 			Print(color[level][0], msg.first[1:])
 			Print(color[level][1], msg.second)
 			Print(color[level][0], stack)
-		case F_FN, F_FN_SYNC: //F_FN
+		case F_FN, F_FN_SYNC:
 			Print(color[level][0], msg.first[1:])
 			Print(color[level][1], msg.second)
 			Print(color[level][0], stack)
-		case F_TMSTMP_FN, F_TMSTMP_FN_SYNC: //F_TMSTMP_FN
+		case F_TMSTMP_FN, F_TMSTMP_FN_SYNC:
 			Print(color[level][0], msg.first[1:])
 			Print(color[level][1], msg.second)
 			Print(color[level][0], stack)
-		case F_FL, F_FL_SYNC: //F_FL
+		case F_FL, F_FL_SYNC:
 			Print(color[level][0], msg.first[1:])
 			Print(color[level][1], msg.second)
 			Print(color[level][0], stack)
-		case F_TMSTMP_FL, F_TMSTMP_FL_SYNC: //F_TMSTMP_FL
+		case F_TMSTMP_FL, F_TMSTMP_FL_SYNC:
 			Print(color[level][0], msg.first[1:])
 			Print(color[level][1], msg.second)
 			Print(color[level][0], stack)
-		case F_FL_FN, F_FL_FN_SYNC: //F_FL_FN
+		case F_FL_FN, F_FL_FN_SYNC:
 			Print(color[level][0], msg.first[1:])
 			Print(color[level][1], msg.second)
 			Print(color[level][0], stack)
-		case F_TMSTMP_FL_FN, F_TMSTMP_FL_FN_SYNC: //F_TMSTMP_FL_FN
+		case F_TMSTMP_FL_FN, F_TMSTMP_FL_FN_SYNC:
 			Print(color[level][0], msg.first[1:])
 			Print(color[level][1], msg.second)
 			Print(color[level][0], stack)
-		case F_TEXT, F_TEXT_SYNC: //F_TEXT
+		case F_TEXT, F_TEXT_SYNC:
 			Print(color[level][0], msg.first[1:])
 			Print(color[level][1], msg.second)
 			Print(color[level][0], stack)
-		default: //F_PURE
+		case F_PURE, F_PURE_SYNC:
+			fallthrough
+		default:
 			Print(color[level][0], msg.second)
 			Print(color[level][0], stack)
 		}
-	case LVL_ERROR, LVL_WARN, LVL_INFO, LVL_TRACE, LVL_DEBUG:
+	case LVL_ERROR, LVL_WARN, LVL_CRITICAL, LVL_INFO, LVL_DEBUG, LVL_TRACE:
 		switch style {
-		case F_DETAIL, F_DETAIL_SYNC: //F_DETAIL
+		case F_DETAIL, F_DETAIL_SYNC:
 			Print(color[level][0], msg.first[1:])
 			Print(color[level][1], msg.second)
-		case F_TMSTMP, F_TMSTMP_SYNC: //F_TMSTMP
+		case F_TMSTMP, F_TMSTMP_SYNC:
 			Print(color[level][0], msg.first[1:])
 			Print(color[level][1], msg.second)
-		case F_FN, F_FN_SYNC: //F_FN
+		case F_FN, F_FN_SYNC:
 			Print(color[level][0], msg.first[1:])
 			Print(color[level][1], msg.second)
-		case F_TMSTMP_FN, F_TMSTMP_FN_SYNC: //F_TMSTMP_FN
+		case F_TMSTMP_FN, F_TMSTMP_FN_SYNC:
 			Print(color[level][0], msg.first[1:])
 			Print(color[level][1], msg.second)
-		case F_FL, F_FL_SYNC: //F_FL
+		case F_FL, F_FL_SYNC:
 			Print(color[level][0], msg.first[1:])
 			Print(color[level][1], msg.second)
-		case F_TMSTMP_FL, F_TMSTMP_FL_SYNC: //F_TMSTMP_FL
+		case F_TMSTMP_FL, F_TMSTMP_FL_SYNC:
 			Print(color[level][0], msg.first[1:])
 			Print(color[level][1], msg.second)
-		case F_FL_FN, F_FL_FN_SYNC: //F_FL_FN
+		case F_FL_FN, F_FL_FN_SYNC:
 			Print(color[level][0], msg.first[1:])
 			Print(color[level][1], msg.second)
-		case F_TMSTMP_FL_FN, F_TMSTMP_FL_FN_SYNC: //F_TMSTMP_FL_FN
+		case F_TMSTMP_FL_FN, F_TMSTMP_FL_FN_SYNC:
 			Print(color[level][0], msg.first[1:])
 			Print(color[level][1], msg.second)
-		case F_TEXT, F_TEXT_SYNC: //F_TEXT
+		case F_TEXT, F_TEXT_SYNC:
 			Print(color[level][0], msg.first[1:])
 			Print(color[level][1], msg.second)
-		default: //F_PURE
+		case F_PURE, F_PURE_SYNC:
+			fallthrough
+		default:
 			Print(color[level][0], msg.second)
 		}
 	}
@@ -1005,12 +1075,4 @@ func (s *logger) wait_started() {
 // reset
 func (s *logger) reset() {
 	s.pipe = nil
-}
-
-func (s *logger) Num() int {
-	return s.c.Count()
-}
-
-func (s *logger) ResetNum() {
-	s.c.Reset()
 }

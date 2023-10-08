@@ -8,21 +8,19 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/xi163/libgo/core/cb"
-	"github.com/xi163/libgo/core/net/conn"
-	"github.com/xi163/libgo/core/net/keepalive"
-	"github.com/xi163/libgo/core/net/tcp"
-	"github.com/xi163/libgo/core/net/transmit"
-	"github.com/xi163/libgo/core/net/transmit/tcpchannel"
-	"github.com/xi163/libgo/core/net/transmit/wschannel"
-	logs "github.com/xi163/libgo/logs"
-	"github.com/xi163/libgo/utils/timestamp"
+	"github.com/cwloo/gonet/core/cb"
+	"github.com/cwloo/gonet/core/net/conn"
+	"github.com/cwloo/gonet/core/net/keepalive"
+	"github.com/cwloo/gonet/core/net/tcp"
+	"github.com/cwloo/gonet/core/net/transmit"
+	"github.com/cwloo/gonet/core/net/transmit/tcpchannel"
+	"github.com/cwloo/gonet/core/net/transmit/wschannel"
+	logs "github.com/cwloo/gonet/logs"
+	"github.com/cwloo/gonet/utils/timestamp"
 	"github.com/gorilla/websocket"
 )
 
-// <summary>
-// Processor TCP服务端
-// <summary>
+// TCP服务端
 type Processor struct {
 	name            string
 	numConnected    int32
@@ -122,9 +120,9 @@ func (s *Processor) SetProtocolCallback(cb cb.OnProtocol) {
 	s.acceptor.SetProtocolCallback(cb)
 }
 
-func (s *Processor) SetHandshakeCallback(cb cb.OnHandshake) {
+func (s *Processor) SetVerifyCallback(cb cb.OnVerify) {
 	s.assertAcceptor()
-	s.acceptor.SetHandshakeCallback(cb)
+	s.acceptor.SetVerifyCallback(cb)
 }
 
 func (s *Processor) SetConditionCallback(cb cb.OnCondition) {
@@ -159,11 +157,11 @@ func (s *Processor) Stop() {
 	}
 }
 
-func (s *Processor) onCondition(addr net.Addr) bool {
+func (s *Processor) onCondition(peerAddr net.Addr, peerRegion *conn.Region) bool {
 	return true
 }
 
-func (s *Processor) newConnection(c any, channel transmit.Channel, protoName string, v ...any) {
+func (s *Processor) newConnection(c any, channel transmit.Channel, protoName string, peerRegion *conn.Region, v ...any) {
 	switch protoName {
 	case "tcp":
 		if p, ok := c.(net.Conn); ok {
@@ -175,7 +173,7 @@ func (s *Processor) newConnection(c any, channel transmit.Channel, protoName str
 				strings.Join([]string{s.name, "#", localAddr, "<-", peerAddr, "#", strconv.FormatInt(connID, 10)}, ""),
 				c,
 				conn.KServer,
-				channel, localAddr, peerAddr, protoName, s.acceptor.GetIdleTimeout())
+				channel, localAddr, peerAddr, protoName, peerRegion, s.acceptor.GetIdleTimeout())
 			peer.(*tcp.TCPConnection).SetConnectedCallback(s.onConnected)
 			peer.(*tcp.TCPConnection).SetClosedCallback(s.onClosed)
 			peer.(*tcp.TCPConnection).SetMessageCallback(s.onMessage)
@@ -202,7 +200,7 @@ func (s *Processor) newConnection(c any, channel transmit.Channel, protoName str
 				strings.Join([]string{s.name, "#", localAddr, "<-", peerAddr, "#", strconv.FormatInt(connID, 10)}, ""),
 				c,
 				conn.KServer,
-				channel, localAddr, peerAddr, protoName, s.acceptor.GetIdleTimeout())
+				channel, localAddr, peerAddr, protoName, peerRegion, s.acceptor.GetIdleTimeout())
 			peer.(*tcp.TCPConnection).SetConnectedCallback(s.onConnected)
 			peer.(*tcp.TCPConnection).SetClosedCallback(s.onClosed)
 			peer.(*tcp.TCPConnection).SetMessageCallback(s.onMessage)
@@ -243,7 +241,7 @@ func (s *Processor) OnConnected(peer conn.Session, v ...any) {
 	}
 }
 
-func (s *Processor) OnClosed(peer conn.Session, reason conn.Reason) {
+func (s *Processor) OnClosed(peer conn.Session, reason conn.Reason, v ...any) {
 	if peer.Connected() {
 		logs.Fatalf("error")
 	} else {
@@ -252,7 +250,7 @@ func (s *Processor) OnClosed(peer conn.Session, reason conn.Reason) {
 	}
 }
 
-func (s *Processor) OnMessage(peer conn.Session, msg any, recvTime timestamp.T) {
+func (s *Processor) OnMessage(peer conn.Session, msg any, msgType int, recvTime timestamp.T) {
 	// logs.Infof("")
 }
 

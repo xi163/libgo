@@ -1,15 +1,13 @@
 package timerwheel
 
 import (
-	"github.com/xi163/libgo/logs"
-	"github.com/xi163/libgo/utils/bucket"
-	"github.com/xi163/libgo/utils/circular"
-	"github.com/xi163/libgo/utils/gid"
+	"github.com/cwloo/gonet/logs"
+	"github.com/cwloo/gonet/utils/bucket"
+	"github.com/cwloo/gonet/utils/circular"
+	"github.com/cwloo/gonet/utils/gid"
 )
 
-// <summary>
-// TimerWheel 时间轮盘，处理空闲超时连接
-// <summary>
+// 时间轮盘，处理空闲超时连接
 type TimerWheel interface {
 	PopBucket(interval int32) (v []any)
 	PushBucket(val any, timeout int32) int32
@@ -83,6 +81,6 @@ func (s *timerWheel) this() bool {
 
 func (s *timerWheel) assertThisThread() {
 	if !s.this() {
-		panic(logs.SprintErrorf("非线程安全 %v", s.tid))
+		panic(logs.SprintErrorf(3, "非线程安全 %v", s.tid))
 	}
 }

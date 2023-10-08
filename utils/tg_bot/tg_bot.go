@@ -5,7 +5,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/xi163/libgo/logs"
+	"github.com/cwloo/gonet/logs"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
@@ -13,9 +13,7 @@ var (
 	tgBot *TgBotApi
 )
 
-// <summary>
 // TgBotApi
-// <summary>
 type TgBotApi struct {
 	TgBot_Token  string
 	TgBot_ChatId int64

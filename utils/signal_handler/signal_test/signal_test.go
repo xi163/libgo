@@ -3,8 +3,8 @@ package signal_test
 import (
 	"testing"
 
-	"github.com/xi163/libgo/logs"
-	"github.com/xi163/libgo/utils/signal_handler"
+	"github.com/cwloo/gonet/logs"
+	"github.com/cwloo/gonet/utils/signal_handler"
 )
 
 func TestMain(m *testing.M) {

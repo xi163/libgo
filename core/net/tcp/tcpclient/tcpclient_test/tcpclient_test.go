@@ -8,13 +8,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/xi163/libgo/core/net/conn"
-	"github.com/xi163/libgo/core/net/tcp/tcpclient"
-	"github.com/xi163/libgo/core/net/transmit"
-	wschannel_tst "github.com/xi163/libgo/core/net/transmit/wschannel/wschannel_tst"
-	logs "github.com/xi163/libgo/logs"
-	"github.com/xi163/libgo/utils/timestamp"
-	"github.com/xi163/libgo/utils/user_context"
+	"github.com/cwloo/gonet/core/net/conn"
+	"github.com/cwloo/gonet/core/net/tcp/tcpclient"
+	"github.com/cwloo/gonet/core/net/transmit"
+	wschannel_tst "github.com/cwloo/gonet/core/net/transmit/wschannel/wschannel_tst"
+	logs "github.com/cwloo/gonet/logs"
+	"github.com/cwloo/gonet/utils/timestamp"
+	"github.com/cwloo/gonet/utils/user_context"
 )
 
 type EchoClient struct {
@@ -40,7 +40,7 @@ func NewClient(addr string) *EchoClient {
 }
 
 func (s *EchoClient) connect() {
-	s.client.ConnectTCP(s.addr)
+	s.client.ConnectTCP(nil, s.addr)
 }
 
 func (s *EchoClient) onProtocol(proto string) transmit.Channel {
@@ -64,7 +64,7 @@ func (s *EchoClient) onConnected(peer conn.Session, v ...any) {
 	}
 }
 
-func (s *EchoClient) onClosed(peer conn.Session, reason conn.Reason) {
+func (s *EchoClient) onClosed(peer conn.Session, reason conn.Reason, v ...any) {
 	if peer.Connected() {
 		panic("error")
 	} else {
@@ -73,7 +73,7 @@ func (s *EchoClient) onClosed(peer conn.Session, reason conn.Reason) {
 	}
 }
 
-func (s *EchoClient) onMessage(peer conn.Session, msg any, recvTime timestamp.T) {
+func (s *EchoClient) onMessage(peer conn.Session, msg any, msgType int, recvTime timestamp.T) {
 	logs.Debugf("%v", string(msg.([]byte)))
 	// peer.Write(utils.Str2Byte("client"))
 }

@@ -1,7 +1,7 @@
 package wschannel
 
 import (
-	logs "github.com/xi163/libgo/logs"
+	logs "github.com/cwloo/gonet/logs"
 
 	"github.com/gorilla/websocket"
 )

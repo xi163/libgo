@@ -1,10 +1,8 @@
 package ch
 
-import "github.com/xi163/libgo/core/base/mq"
+import "github.com/cwloo/gonet/core/base/mq"
 
-// <summary>
-// Queue chan消息队列
-// <summary>
+// chan消息队列
 type Queue interface {
 	mq.Queue
 	Read() <-chan any

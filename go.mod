@@ -1,4 +1,4 @@
-module github.com/xi123/libgo
+module github.com/cwloo/gonet
 
 go 1.19
 

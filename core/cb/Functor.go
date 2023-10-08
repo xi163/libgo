@@ -3,7 +3,7 @@ package cb
 import (
 	"sync"
 
-	"github.com/xi163/libgo/core/base/cc"
+	"github.com/cwloo/gonet/core/base/cc"
 )
 
 var (
@@ -39,9 +39,7 @@ var (
 	}
 )
 
-// <summary>
-// Functor 回调函数
-// <summary>
+// 回调函数
 type Functor interface {
 	Call() (any, error)
 	CallWith(expire cc.Expire) (any, error)

@@ -4,14 +4,29 @@ import (
 	"sync"
 	"time"
 
-	"github.com/xi163/libgo/core/cb"
-	"github.com/xi163/libgo/core/net/conn"
+	"github.com/cwloo/gonet/core/cb"
+	"github.com/cwloo/gonet/core/net/conn"
 )
 
 var (
 	dataPool = sync.Pool{
 		New: func() any {
 			return &Data{}
+		},
+	}
+	connectedPool = sync.Pool{
+		New: func() any {
+			return &Connected{}
+		},
+	}
+	closingPool = sync.Pool{
+		New: func() any {
+			return &Closing{}
+		},
+	}
+	closedPool = sync.Pool{
+		New: func() any {
+			return &Closed{}
 		},
 	}
 	readPool = sync.Pool{
@@ -24,24 +39,19 @@ var (
 			return &Custom{}
 		},
 	}
-	closingPool = sync.Pool{
-		New: func() any {
-			return &Closing{}
-		},
-	}
 )
 
 type Type int8
 
 const (
-	EVTRead Type = iota
-	EVTCustom
-	EVTClosing
+	EVTConnected Type = iota //建立连接事件
+	EVTClosing               //通知关闭事件
+	EVTClosed                //响应断开事件
+	EVTRead                  //网络读取事件
+	EVTCustom                //自定义事件
 )
 
-// <summary>
-// Data 事件数据
-// <summary>
+// 事件数据
 type Data struct {
 	Event  Type
 	Object any
@@ -60,9 +70,79 @@ func (s *Data) Put() {
 	dataPool.Put(s)
 }
 
-// <summary>
-// Read 读事件数据
-// <summary>
+// 建立连接事件
+type Connected struct {
+	Peer    conn.Session
+	Handler cb.OnConnected
+	Args    []any
+}
+
+func (s *Connected) Put() {
+	connectedPool.Put(s)
+}
+
+func CreateConnected(peer conn.Session, v ...any) *Connected {
+	s := connectedPool.Get().(*Connected)
+	s.Peer = peer
+	s.Args = append(s.Args, v...)
+	return s
+}
+
+func CreateConnectedWith(handler cb.OnConnected, peer conn.Session, v ...any) *Connected {
+	s := connectedPool.Get().(*Connected)
+	s.Handler = handler
+	s.Peer = peer
+	s.Args = append(s.Args, v...)
+	return s
+}
+
+// 通知关闭事件
+type Closing struct {
+	D    time.Duration
+	Peer conn.Session
+}
+
+func (s *Closing) Put() {
+	closingPool.Put(s)
+}
+
+func CreateClosing(d time.Duration, peer conn.Session) *Closing {
+	s := closingPool.Get().(*Closing)
+	s.D = d
+	s.Peer = peer
+	return s
+}
+
+// 响应断开事件
+type Closed struct {
+	Peer    conn.Session
+	Reason  conn.Reason
+	Handler cb.OnClosed
+	Args    []any
+}
+
+func (s *Closed) Put() {
+	closedPool.Put(s)
+}
+
+func CreateClosed(peer conn.Session, reason conn.Reason, v ...any) *Closed {
+	s := closedPool.Get().(*Closed)
+	s.Peer = peer
+	s.Reason = reason
+	s.Args = append(s.Args, v...)
+	return s
+}
+
+func CreateClosedWith(handler cb.OnClosed, peer conn.Session, reason conn.Reason, v ...any) *Closed {
+	s := closedPool.Get().(*Closed)
+	s.Handler = handler
+	s.Peer = peer
+	s.Reason = reason
+	s.Args = append(s.Args, v...)
+	return s
+}
+
+// 网络读取事件
 type Read struct {
 	Cmd     uint32
 	Peer    conn.Session
@@ -91,9 +171,7 @@ func CreateReadWith(handler cb.ReadCallback, cmd uint32, msg any, peer conn.Sess
 	return s
 }
 
-// <summary>
-// Custom 自定义事件数据
-// <summary>
+// 自定义事件
 type Custom struct {
 	Cmd     uint32
 	Peer    conn.Session
@@ -118,25 +196,6 @@ func CreateCustomWith(handler cb.CustomCallback, cmd uint32, msg any, peer conn.
 	s.Handler = handler
 	s.Cmd = cmd
 	s.Msg = msg
-	s.Peer = peer
-	return s
-}
-
-// <summary>
-// Closing 通知关闭事件数据
-// <summary>
-type Closing struct {
-	D    time.Duration
-	Peer conn.Session
-}
-
-func (s *Closing) Put() {
-	closingPool.Put(s)
-}
-
-func CreateClosing(d time.Duration, peer conn.Session) *Closing {
-	s := closingPool.Get().(*Closing)
-	s.D = d
 	s.Peer = peer
 	return s
 }

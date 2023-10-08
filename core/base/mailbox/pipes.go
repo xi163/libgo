@@ -6,22 +6,20 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/xi163/libgo/core/base/cc"
-	"github.com/xi163/libgo/core/base/mq"
-	"github.com/xi163/libgo/core/base/mq/ch"
-	"github.com/xi163/libgo/core/base/pipe"
-	"github.com/xi163/libgo/core/base/run"
-	"github.com/xi163/libgo/core/base/run/cell"
-	"github.com/xi163/libgo/core/base/run/event"
-	"github.com/xi163/libgo/core/base/run/workers"
-	"github.com/xi163/libgo/core/base/timer"
-	"github.com/xi163/libgo/core/cb"
-	"github.com/xi163/libgo/utils/safe"
+	"github.com/cwloo/gonet/core/base/cc"
+	"github.com/cwloo/gonet/core/base/mq"
+	"github.com/cwloo/gonet/core/base/mq/ch"
+	"github.com/cwloo/gonet/core/base/pipe"
+	"github.com/cwloo/gonet/core/base/run"
+	"github.com/cwloo/gonet/core/base/run/cell"
+	"github.com/cwloo/gonet/core/base/run/event"
+	"github.com/cwloo/gonet/core/base/run/workers"
+	"github.com/cwloo/gonet/core/base/timer"
+	"github.com/cwloo/gonet/core/cb"
+	"github.com/cwloo/gonet/utils/safe"
 )
 
-// <summary>
-// Pipes 基于pipe的邮槽管理器接口/管道池(多生产者，多消费者)
-// <summary>
+// 基于pipe的邮槽管理器接口/管道池(多生产者，多消费者)
 type Pipes interface {
 	Add(d time.Duration, creator cell.WorkerCreator, size, num int)
 	AddOne(d time.Duration, creator cell.WorkerCreator, size int) pipe.Pipe
@@ -70,10 +68,9 @@ func (s *pipes) AddOne(d time.Duration, creator cell.WorkerCreator, size int) pi
 
 func (s *pipes) new_pipe(id int32, d time.Duration, creator cell.WorkerCreator) pipe.Pipe {
 	cpu := runtime.NumCPU()
-	cpu = 1
-	nonblock := true //非阻塞
-	tick := false    //开启tick检查
-	// d := time.Second //tick间隔时间
+	nonblock := true
+	tick := false
+	// d := time.Second
 	runner := workers.NewProcessor(tick, d, s.handler, s.onTimer, creator)
 	// runner := workers.NewProcessor(d, s.handler, nil, creator)
 	pipe := pipe.NewPipe(id, "worker.pipe", cpu, nonblock, runner)
@@ -81,7 +78,7 @@ func (s *pipes) new_pipe(id int32, d time.Duration, creator cell.WorkerCreator) 
 }
 
 func (s *pipes) New(v ...any) (q mq.Queue) {
-	if t, ok := ch.NewChan(v[0].(int), v[1].(int), v[2].(bool)).(mq.Queue); ok {
+	if t, ok := ch.NewChan(v[0].(int), v[1].(bool)).(mq.Queue); ok {
 		q = t
 		return
 	}
@@ -99,7 +96,6 @@ func (s *pipes) onTimer(timerID uint32, dt int32, args ...any) bool {
 	case cb.Functor:
 		f, _ := args[0].(cb.Functor)
 		f.Call()
-		break
 	}
 	return true
 }
@@ -122,73 +118,71 @@ func (s *pipes) handler(msg any, args ...any) bool {
 		panic(errors.New("args[1]"))
 	}
 	proc.AssertThis()
-	switch msg.(type) {
+	switch msg := msg.(type) {
 	case *event.Data:
-		data, _ := msg.(*event.Data)
 		proc.ResetDispatcher()
-		switch data.Event {
-		case event.EVTRead:
-			// 网络读事件
-			ev, _ := data.Object.(*event.Read)
+		switch msg.Event {
+		case event.EVTConnected: //建立连接事件
+			ev, _ := msg.Object.(*event.Connected)
 			if ev.Handler != nil {
-				ev.Handler(ev.Cmd, ev.Msg, ev.Peer)
+				ev.Handler(ev.Peer, ev.Args...)
 			} else {
-				worker.(cell.NetWorker).OnRead(ev.Cmd, ev.Msg, ev.Peer)
+				worker.(cell.NetWorker).OnConnected(ev.Peer, ev.Args...)
 			}
-			break
-		case event.EVTCustom:
-			// 自定义事件
-			ev, _ := data.Object.(*event.Custom)
-			if ev.Handler != nil {
-				ev.Handler(ev.Cmd, ev.Msg, ev.Peer)
-			} else {
-				worker.(cell.NetWorker).OnCustom(ev.Cmd, ev.Msg, ev.Peer)
-			}
-			break
-		case event.EVTClosing:
-			// 通知关闭事件
-			ev, _ := data.Object.(*event.Closing)
+		case event.EVTClosing: //通知关闭事件
+			ev, _ := msg.Object.(*event.Closing)
 			if ev.D > 0 {
 				ev.Peer.CloseAfter(ev.D)
 			} else {
 				ev.Peer.Close()
 			}
-			break
+		case event.EVTClosed: //响应断开事件
+			ev, _ := msg.Object.(*event.Closed)
+			if ev.Handler != nil {
+				ev.Handler(ev.Peer, ev.Reason, ev.Args...)
+			} else {
+				worker.(cell.NetWorker).OnClosed(ev.Peer, ev.Reason, ev.Args...)
+			}
+		case event.EVTRead: //网络读取事件
+			ev, _ := msg.Object.(*event.Read)
+			if ev.Handler != nil {
+				ev.Handler(ev.Cmd, ev.Msg, ev.Peer)
+			} else {
+				worker.(cell.NetWorker).OnRead(ev.Cmd, ev.Msg, ev.Peer)
+			}
+		case event.EVTCustom: //自定义事件
+			ev, _ := msg.Object.(*event.Custom)
+			if ev.Handler != nil {
+				ev.Handler(ev.Cmd, ev.Msg, ev.Peer)
+			} else {
+				worker.(cell.NetWorker).OnCustom(ev.Cmd, ev.Msg, ev.Peer)
+			}
 		}
 		if proc.Dispatcher() != nil {
-			proc.Dispatcher().Do(data)
+			proc.Dispatcher().Do(msg)
 		} else {
-			s.recycle(data)
+			s.recycle(msg)
 		}
-		break
 	case timer.Data:
-		data, _ := msg.(timer.Data)
-		switch data.OpType() {
+		switch msg.OpType() {
 		case timer.RunAfter:
-			timerId := arg.RunAfter(data.Delay(), data.Args()...)
-			data.Cb()(timerId)
-			break
+			timerId := arg.RunAfter(msg.Delay(), msg.Args()...)
+			msg.Cb()(timerId)
 		case timer.RunAfterWith:
-			timerId := arg.RunAfterWith(data.Delay(), data.TimerCallback(), data.Args()...)
-			data.Cb()(timerId)
-			break
+			timerId := arg.RunAfterWith(msg.Delay(), msg.TimerCallback(), msg.Args()...)
+			msg.Cb()(timerId)
 		case timer.RunEvery:
-			timerId := arg.RunEvery(data.Delay(), data.Interval(), data.Args()...)
-			data.Cb()(timerId)
-			break
+			timerId := arg.RunEvery(msg.Delay(), msg.Interval(), msg.Args()...)
+			msg.Cb()(timerId)
 		case timer.RunEveryWith:
-			timerId := arg.RunEveryWith(data.Delay(), data.Interval(), data.TimerCallback(), data.Args()...)
-			data.Cb()(timerId)
-			break
+			timerId := arg.RunEveryWith(msg.Delay(), msg.Interval(), msg.TimerCallback(), msg.Args()...)
+			msg.Cb()(timerId)
 		case timer.RemoveTimer:
-			arg.RemoveTimer(data.TimerId())
-			break
+			arg.RemoveTimer(msg.TimerId())
 		case timer.RemoveTimers:
 			arg.RemoveTimers()
-			break
 		}
-		data.Put()
-		break
+		msg.Put()
 	}
 	// logger.Debugf("NumProcessed:%v", s.Num())
 	return false
@@ -199,15 +193,12 @@ func (s *pipes) recycle(data *event.Data) {
 	case event.EVTRead:
 		ev, _ := data.Object.(*event.Read)
 		ev.Put()
-		break
 	case event.EVTCustom:
 		ev, _ := data.Object.(*event.Custom)
 		ev.Put()
-		break
 	case event.EVTClosing:
 		ev, _ := data.Object.(*event.Closing)
 		ev.Put()
-		break
 	}
 	data.Put()
 	// runtime.GC()

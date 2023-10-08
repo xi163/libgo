@@ -3,7 +3,7 @@ package circular_test
 import (
 	"testing"
 
-	"github.com/xi163/libgo/utils/circular"
+	"github.com/cwloo/gonet/utils/circular"
 )
 
 func TestMain(m *testing.M) {

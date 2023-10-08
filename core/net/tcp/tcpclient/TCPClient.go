@@ -1,19 +1,18 @@
 package tcpclient
 
 import (
+	"net/http"
 	"time"
 
-	"github.com/xi163/libgo/core/cb"
-	"github.com/xi163/libgo/core/net/conn"
+	"github.com/cwloo/gonet/core/cb"
+	"github.com/cwloo/gonet/core/net/conn"
 )
 
-// <summary>
-// TCPClient TCP客户端
-// <summary>
+// TCP客户端
 type TCPClient interface {
 	Name() string
 	Peers() conn.Sessions
-	ConnectTCP(address ...string)
+	ConnectTCP(header http.Header, address ...string)
 	Reconnect()
 	Disconnect()
 	Retry() bool
@@ -24,6 +23,7 @@ type TCPClient interface {
 	SetIdleTimeout(timeout, d time.Duration)
 	SetRetryInterval(d time.Duration)
 	SetProtocolCallback(cb cb.OnProtocol)
+	SetConnectErrorCallback(cb cb.OnConnectError)
 	SetConnectedCallback(cb cb.OnConnected)
 	SetClosedCallback(cb cb.OnClosed)
 	SetMessageCallback(cb cb.OnMessage)

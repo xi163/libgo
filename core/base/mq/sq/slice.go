@@ -4,13 +4,11 @@ import (
 	_ "net/http/pprof"
 	"sync"
 
-	"github.com/xi163/libgo/core/base/mq"
-	"github.com/xi163/libgo/core/cb"
+	"github.com/cwloo/gonet/core/base/mq"
+	"github.com/cwloo/gonet/core/cb"
 )
 
-// <summary>
-// slice 非阻塞队列
-// <summary>
+// slice非阻塞队列
 type slice struct {
 	lock  *sync.Mutex
 	slice []any

@@ -5,41 +5,34 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/xi163/libgo/core/base/cc"
-	"github.com/xi163/libgo/core/base/pipe"
-	"github.com/xi163/libgo/core/base/run"
-	"github.com/xi163/libgo/core/base/run/timer_wheel"
-	"github.com/xi163/libgo/core/base/timer"
-	"github.com/xi163/libgo/core/cb"
-	"github.com/xi163/libgo/core/net/conn"
+	"github.com/cwloo/gonet/core/base/pipe"
+	"github.com/cwloo/gonet/core/base/run"
+	"github.com/cwloo/gonet/core/base/run/timer_wheel"
+	"github.com/cwloo/gonet/core/base/timer"
+	"github.com/cwloo/gonet/core/cb"
+	"github.com/cwloo/gonet/core/net/conn"
 )
 
-// <summary>
-// Buckets 定时轮盘池，处理空闲会话(多生产者，多消费者)
-// <summary>
+// 定时轮盘池，处理空闲会话(多生产者，多消费者)
 type Buckets interface {
 	Size() int32
 	Interval() int32
 	Next() (pipe pipe.Pipe)
 	Start()
 	Stop()
-	Num() int
-	ResetNum()
 }
 
 type buckets struct {
 	p Pool
-	c cc.Counter
 }
 
 func NewBuckets(bucketsz int32, d time.Duration) Buckets {
 	if bucketsz <= 0 {
 		return &buckets{}
 	}
-	cpu := runtime.NumCPU() //pipe数量
-	//d := time.Second        //tick间隔时间
+	cpu := runtime.NumCPU()
+	//d := time.Second
 	s := &buckets{
-		c: cc.NewAtomCounter(),
 		p: NewPool("buckets.pool", bucketsz, d, int32(cpu)),
 	}
 	s.p.SetProcessor(cb.Processor(s.handler))
@@ -91,7 +84,6 @@ func (s *buckets) onTimer(timerID uint32, dt int32, args ...any) bool {
 }
 
 func (s *buckets) handler(msg any, args ...any) bool {
-	s.c.Up()
 	if len(args) < 1 {
 		panic(errors.New("args.size"))
 	}
@@ -137,22 +129,6 @@ func (s *buckets) handler(msg any, args ...any) bool {
 		data.Put()
 	}
 	return false
-}
-
-func (s *buckets) Num() int {
-	switch s.c {
-	case nil:
-		return 0
-	}
-	return s.c.Count()
-}
-
-func (s *buckets) ResetNum() {
-	switch s.c {
-	case nil:
-	default:
-		s.c.Reset()
-	}
 }
 
 func (s *buckets) Start() {

@@ -3,26 +3,25 @@ package tcpclient
 import (
 	"errors"
 	"net"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/xi163/libgo/core/cb"
-	"github.com/xi163/libgo/core/net/conn"
-	"github.com/xi163/libgo/core/net/keepalive"
-	"github.com/xi163/libgo/core/net/tcp"
-	"github.com/xi163/libgo/core/net/transmit"
-	"github.com/xi163/libgo/core/net/transmit/tcpchannel"
-	"github.com/xi163/libgo/core/net/transmit/wschannel"
-	logs "github.com/xi163/libgo/logs"
-	"github.com/xi163/libgo/utils/timestamp"
+	"github.com/cwloo/gonet/core/cb"
+	"github.com/cwloo/gonet/core/net/conn"
+	"github.com/cwloo/gonet/core/net/keepalive"
+	"github.com/cwloo/gonet/core/net/tcp"
+	"github.com/cwloo/gonet/core/net/transmit"
+	"github.com/cwloo/gonet/core/net/transmit/tcpchannel"
+	"github.com/cwloo/gonet/core/net/transmit/wschannel"
+	logs "github.com/cwloo/gonet/logs"
+	"github.com/cwloo/gonet/utils/timestamp"
 
 	"github.com/gorilla/websocket"
 )
 
-// <summary>
-// Processor TCP客户端
-// <summary>
+// TCP客户端
 type Processor struct {
 	name            string
 	hold            conn.HoldType
@@ -45,6 +44,7 @@ func NewTCPClient(name string, address ...string) TCPClient {
 	s.connector.SetRetryInterval(time.Second)
 	s.connector.SetProtocolCallback(s.onProtocol)
 	s.connector.SetNewConnectionCallback(s.newConnection)
+	s.connector.SetConnectErrorCallback(s.onConnectError)
 	s.SetConnectedCallback(s.OnConnected)
 	s.SetClosedCallback(s.OnClosed)
 	s.SetMessageCallback(s.OnMessage)
@@ -123,6 +123,11 @@ func (s *Processor) SetProtocolCallback(cb cb.OnProtocol) {
 	s.connector.SetProtocolCallback(cb)
 }
 
+func (s *Processor) SetConnectErrorCallback(cb cb.OnConnectError) {
+	s.assertConnector()
+	s.connector.SetConnectErrorCallback(cb)
+}
+
 func (s *Processor) SetConnectedCallback(cb cb.OnConnected) {
 	s.onConnected = cb
 }
@@ -139,7 +144,7 @@ func (s *Processor) SetWriteCompleteCallback(cb cb.OnWriteComplete) {
 	s.onWriteComplete = cb
 }
 
-func (s *Processor) newConnection(c any, channel transmit.Channel, protoName string, v ...any) {
+func (s *Processor) newConnection(c any, channel transmit.Channel, protoName string, peerRegion *conn.Region, v ...any) {
 	switch protoName {
 	case "tcp":
 		if p, ok := c.(net.Conn); ok {
@@ -151,7 +156,7 @@ func (s *Processor) newConnection(c any, channel transmit.Channel, protoName str
 				strings.Join([]string{s.name, "#", localAddr, "->", peerAddr, "#", strconv.FormatInt(connID, 10)}, ""),
 				c,
 				conn.KClient,
-				channel, localAddr, peerAddr, protoName, s.connector.GetIdleTimeout())
+				channel, localAddr, peerAddr, protoName, peerRegion, s.connector.GetIdleTimeout())
 			peer.(*tcp.TCPConnection).SetConnectedCallback(s.onConnected)
 			peer.(*tcp.TCPConnection).SetClosedCallback(s.onClosed)
 			peer.(*tcp.TCPConnection).SetMessageCallback(s.onMessage)
@@ -178,7 +183,7 @@ func (s *Processor) newConnection(c any, channel transmit.Channel, protoName str
 				strings.Join([]string{s.name, "#", localAddr, "->", peerAddr, "#", strconv.FormatInt(connID, 10)}, ""),
 				c,
 				conn.KClient,
-				channel, localAddr, peerAddr, protoName, s.connector.GetIdleTimeout())
+				channel, localAddr, peerAddr, protoName, peerRegion, s.connector.GetIdleTimeout())
 			peer.(*tcp.TCPConnection).SetConnectedCallback(s.onConnected)
 			peer.(*tcp.TCPConnection).SetClosedCallback(s.onClosed)
 			peer.(*tcp.TCPConnection).SetMessageCallback(s.onMessage)
@@ -210,9 +215,12 @@ func (s *Processor) onProtocol(proto string) transmit.Channel {
 	panic("no proto setup")
 }
 
-func (s *Processor) ConnectTCP(address ...string) {
+func (s *Processor) ConnectTCP(header http.Header, address ...string) {
 	s.assertConnector()
-	s.connector.ConnectTCP(address...)
+	s.connector.ConnectTCP(header, address...)
+}
+
+func (s *Processor) onConnectError(proto string, err error) {
 }
 
 func (s *Processor) OnConnected(peer conn.Session, v ...any) {
@@ -223,7 +231,7 @@ func (s *Processor) OnConnected(peer conn.Session, v ...any) {
 	}
 }
 
-func (s *Processor) OnClosed(peer conn.Session, reason conn.Reason) {
+func (s *Processor) OnClosed(peer conn.Session, reason conn.Reason, v ...any) {
 	if peer.Connected() {
 		logs.Fatalf("error")
 	} else {
@@ -231,7 +239,7 @@ func (s *Processor) OnClosed(peer conn.Session, reason conn.Reason) {
 	}
 }
 
-func (s *Processor) OnMessage(peer conn.Session, msg any, recvTime timestamp.T) {
+func (s *Processor) OnMessage(peer conn.Session, msg any, msgType int, recvTime timestamp.T) {
 	// logs.Infof("")
 }
 

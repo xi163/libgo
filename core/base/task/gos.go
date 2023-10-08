@@ -3,12 +3,12 @@ package task
 import (
 	"sync"
 
-	"github.com/xi163/libgo/core/base/cc"
-	"github.com/xi163/libgo/core/base/mq/lq"
-	"github.com/xi163/libgo/core/base/run"
-	"github.com/xi163/libgo/core/base/run/gos"
-	"github.com/xi163/libgo/core/base/watcher"
-	"github.com/xi163/libgo/core/cb"
+	"github.com/cwloo/gonet/core/base/cc"
+	"github.com/cwloo/gonet/core/base/mq/lq"
+	"github.com/cwloo/gonet/core/base/run"
+	"github.com/cwloo/gonet/core/base/run/gos"
+	"github.com/cwloo/gonet/core/base/watcher"
+	"github.com/cwloo/gonet/core/cb"
 )
 
 func NewGos(name string, init, size int, fixed, nonblock bool, handler cb.Processor) Task {

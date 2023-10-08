@@ -3,7 +3,7 @@ package bucket
 import (
 	"sync"
 
-	"github.com/xi163/libgo/core/net/conn"
+	"github.com/cwloo/gonet/core/net/conn"
 )
 
 var (
@@ -21,9 +21,7 @@ const (
 	Update
 )
 
-// <summary>
-// Data 定时轮盘桶节点，处理空闲会话
-// <summary>
+// 定时轮盘桶节点，处理空闲会话
 type Data interface {
 	OpType() OpType
 	Cb() func(args ...any)

@@ -1,23 +1,23 @@
 package tcp
 
 import (
-	"errors"
 	"net"
 	"runtime"
 	"sync"
 	"time"
 
-	"github.com/xi163/libgo/core/base/cc"
-	"github.com/xi163/libgo/core/base/mq"
-	"github.com/xi163/libgo/core/base/mq/lq"
-	"github.com/xi163/libgo/core/base/task"
-	"github.com/xi163/libgo/core/cb"
-	"github.com/xi163/libgo/core/net/conn"
-	"github.com/xi163/libgo/core/net/keepalive"
-	"github.com/xi163/libgo/core/net/transmit"
-	logs "github.com/xi163/libgo/logs"
-	"github.com/xi163/libgo/utils/safe"
-	"github.com/xi163/libgo/utils/timestamp"
+	"github.com/cwloo/gonet/core/base/cc"
+	"github.com/cwloo/gonet/core/base/mq"
+	"github.com/cwloo/gonet/core/base/mq/lq"
+	"github.com/cwloo/gonet/core/base/pool/gopool"
+	"github.com/cwloo/gonet/core/base/task"
+	"github.com/cwloo/gonet/core/cb"
+	"github.com/cwloo/gonet/core/net/conn"
+	"github.com/cwloo/gonet/core/net/keepalive"
+	"github.com/cwloo/gonet/core/net/transmit"
+	logs "github.com/cwloo/gonet/logs"
+	"github.com/cwloo/gonet/utils/safe"
+	"github.com/cwloo/gonet/utils/timestamp"
 
 	"github.com/gorilla/websocket"
 )
@@ -30,16 +30,16 @@ var (
 	}
 )
 
-// <summary>
-// TCPConnection TCP连接会话
-// <summary>
+// TCP连接会话
 type TCPConnection struct {
 	id                int64
 	name              string
 	localAddr         string
-	remoteAddr        string
+	peerAddr          string
 	protoName         string
+	peerRegion        *conn.Region
 	conn              any
+	l                 sync.RWMutex
 	context           map[any]any
 	connType          conn.Type
 	mq                mq.BlockQueue
@@ -61,17 +61,20 @@ type TCPConnection struct {
 	destroyCallback   func(v any)
 }
 
-func NewTCPConnection(id int64, name string, c any, connType conn.Type, channel transmit.Channel, localAddr, remoteAddr, protoName string, d time.Duration) conn.Session {
+func NewTCPConnection(id int64, name string, c any, connType conn.Type, channel transmit.Channel, localAddr, peerAddr, protoName string, peerRegion *conn.Region, d time.Duration) conn.Session {
 	peer := connPool.Get().(*TCPConnection)
+	//peer := &TCPConnection{}
 	peer.id = id
 	peer.name = name
 	peer.conn = c
 	peer.localAddr = localAddr
-	peer.remoteAddr = remoteAddr
+	peer.peerAddr = peerAddr
+	peer.peerRegion = peerRegion
 	peer.protoName = protoName
 	peer.state = conn.KDisconnected
 	peer.reason = conn.KNoError
 	peer.connType = connType
+	peer.l = sync.RWMutex{}
 	peer.context = map[any]any{}
 	peer.mq = lq.NewQueue(0)
 	peer.channel = channel
@@ -107,15 +110,21 @@ func (s *TCPConnection) Connected() bool {
 
 func (s *TCPConnection) assertConn() {
 	if s.conn == nil {
-		panic(errors.New("error"))
+		logs.Fatalf("error")
 	}
 }
 
 func (s *TCPConnection) assertChannel() {
 	if s.channel == nil {
-		panic(errors.New("error"))
+		logs.Fatalf("error")
 	}
 }
+
+// func (s *TCPConnection) assertRegion() {
+// 	if s.peerRegion == nil {
+// 		logs.Fatalf("error")
+// 	}
+// }
 
 // func (s *TCPConnection) checkConn() {
 // 	if s.conn == nil {
@@ -124,7 +133,7 @@ func (s *TCPConnection) assertChannel() {
 // 	if _, ok := s.conn.(net.Conn); ok {
 // 	} else if _, ok := s.conn.(*websocket.Conn); ok {
 // 	} else {
-// 		panic(errors.New("error"))
+// 		logs.Fatalf("error")
 // 	}
 // }
 
@@ -133,7 +142,16 @@ func (s *TCPConnection) LocalAddr() string {
 }
 
 func (s *TCPConnection) RemoteAddr() string {
-	return s.remoteAddr
+	return s.peerAddr
+}
+
+func (s *TCPConnection) RemoteRegion() conn.Region {
+	switch s.peerRegion {
+	case nil:
+		return conn.Region{}
+	default:
+		return *s.peerRegion
+	}
 }
 
 func (s *TCPConnection) ProtoName() string {
@@ -145,23 +163,32 @@ func (s *TCPConnection) Type() conn.Type {
 }
 
 func (s *TCPConnection) SetContext(key any, val any) (old any) {
-	if val != nil {
-		if val, ok := s.context[key]; ok {
-			old = val
+	s.l.Lock()
+	switch val {
+	case nil:
+		v, ok := s.context[key]
+		switch ok {
+		case true:
+			old = v
+			delete(s.context, key)
+		}
+	default:
+		v, ok := s.context[key]
+		switch ok {
+		case true:
+			old = v
 		}
 		s.context[key] = val
-	} else if val, ok := s.context[key]; ok {
-		old = val
-		delete(s.context, key)
 	}
+	s.l.Unlock()
 	return
 }
 
-func (s *TCPConnection) GetContext(key any) any {
-	if val, ok := s.context[key]; ok {
-		return val
-	}
-	return nil
+func (s *TCPConnection) GetContext(key any) (val any) {
+	s.l.RLock()
+	val = s.context[key]
+	s.l.RUnlock()
+	return
 }
 
 func (s *TCPConnection) SetConnectedCallback(cb cb.OnConnected) {
@@ -199,20 +226,19 @@ func (s *TCPConnection) SetDestroyCallback(cb func(v any)) {
 func (s *TCPConnection) ConnectEstablished(v ...any) {
 	s.wg.Add(1)
 	s.SetContext("ext", v)
-	go s.readLoop()
-	go s.writeLoop()
-	// gopool.Go(cb.NewFunctor00(func() {
-	// 	s.readLoop()
-	// }))
-	// gopool.Go(cb.NewFunctor00(func() {
-	// 	s.writeLoop()
-	// }))
+	gopool.Go2(cb.NewFunctor00(func() {
+		s.readLoop()
+	}))
+	gopool.Go2(cb.NewFunctor00(func() {
+		s.writeLoop()
+	}))
 }
 
 func (s *TCPConnection) connectEstablished(v ...any) {
 	if s.id == 0 {
-		panic(errors.New("error"))
+		logs.Fatalf("error")
 	}
+	s.closed = false
 	s.setState(conn.KConnected)
 	s.buckets.Push(s)
 	if s.onConnected != nil {
@@ -225,7 +251,7 @@ func (s *TCPConnection) connectEstablished(v ...any) {
 
 func (s *TCPConnection) ConnectDestroyed() {
 	if s.id == 0 {
-		panic(errors.New("error"))
+		logs.Fatalf("error")
 	}
 	s.setState(conn.KDisconnected)
 	s.buckets.Put()
@@ -254,7 +280,7 @@ LOOP:
 			// runtime.Gosched()
 		}
 		i++
-		msg, err := s.channel.OnRecv(s.conn)
+		msgType, msg, err := s.channel.OnRecv(s.conn)
 		if err != nil {
 			// logs.Errorf("%v", err)
 			// if !IsEOFOrReadError(err) {
@@ -282,12 +308,12 @@ LOOP:
 				break LOOP
 			}
 		} else if msg == nil {
-			panic(errors.New("error"))
+			logs.Fatalf("error")
 		} else if s.onMessage != nil {
 			s.buckets.Update(s)
-			s.onMessage(s, msg, timestamp.Now())
+			s.onMessage(s, msg, msgType, timestamp.Now())
 		} else {
-			panic(errors.New("error"))
+			logs.Fatalf("error")
 		}
 	}
 	// 关闭执行流程
@@ -328,16 +354,31 @@ LOOP:
 			// if ctx := s.GetContext("ctx").(user_context.Ctx); ctx != nil {
 			// 	logs.Debugf("[%v:%v] write =>", ctx.GetUserId(), ctx.GetSession())
 			// }
-			err := s.channel.OnSend(s.conn, msg)
-			if err != nil {
-				logs.Errorf("%v", err)
-				// if !transmit.IsEOFOrWriteError(err) {
-				// 	if s.errorCallback != nil {
-				// 		s.errorCallback(err)
-				// 	}
-				// }
-			} else if s.onWriteComplete != nil {
-				s.onWriteComplete(s)
+			switch msg := msg.(type) {
+			case transmit.Messagetruct:
+				err := s.channel.OnSend(s.conn, msg.Msg, msg.Type)
+				if err != nil {
+					logs.Errorf("%v", err)
+					// if !transmit.IsEOFOrWriteError(err) {
+					// 	if s.errorCallback != nil {
+					// 		s.errorCallback(err)
+					// 	}
+					// }
+				} else if s.onWriteComplete != nil {
+					s.onWriteComplete(s)
+				}
+			default:
+				err := s.channel.OnSend(s.conn, msg, websocket.BinaryMessage)
+				if err != nil {
+					logs.Errorf("%v", err)
+					// if !transmit.IsEOFOrWriteError(err) {
+					// 	if s.errorCallback != nil {
+					// 		s.errorCallback(err)
+					// 	}
+					// }
+				} else if s.onWriteComplete != nil {
+					s.onWriteComplete(s)
+				}
 			}
 			return
 		})
@@ -356,7 +397,7 @@ LOOP:
 					// logs.Infof("self closed connection delay.")
 					s.setReason(conn.KSelfClosedDelay)
 				default:
-					panic("error")
+					logs.Fatalf("error")
 				}
 			}
 			break LOOP
@@ -370,11 +411,31 @@ LOOP:
 
 // 写数据
 func (s *TCPConnection) Write(msg any) {
-	if msg == nil {
-		return
+	switch msg {
+	case nil:
+	default:
+		switch s.Connected() {
+		case true:
+			s.mq.Push(msg)
+		}
 	}
-	if s.Connected() {
-		s.mq.Push(msg)
+}
+
+func (s *TCPConnection) WriteText(msg any) {
+	switch msg {
+	case nil:
+	default:
+		switch s.Connected() {
+		case true:
+			switch msg := msg.(type) {
+			case []byte:
+				s.mq.Push(transmit.Messagetruct{Type: websocket.TextMessage, Msg: msg})
+			case string:
+				s.mq.Push(transmit.Messagetruct{Type: websocket.TextMessage, Msg: []byte(msg)})
+			default:
+				s.mq.Push(transmit.Messagetruct{Type: websocket.TextMessage, Msg: msg})
+			}
+		}
 	}
 }
 
@@ -422,7 +483,7 @@ func (s *TCPConnection) notifyClose(flag int) {
 	case int(conn.KSelfClosed):
 		s.mq.Push(&mq.ExitStruct{Code: int(conn.KSelfClosed)})
 	default:
-		panic("error")
+		logs.Fatalf("error")
 	}
 }
 
@@ -451,7 +512,7 @@ func (s *TCPConnection) close() {
 				logs.Errorf("%v", err)
 			}
 		} else {
-			panic(errors.New("error"))
+			logs.Fatalf("error")
 		}
 		s.closed = true
 		s.closing.Reset()

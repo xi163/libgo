@@ -3,9 +3,9 @@ package keepalive
 import (
 	"sync"
 
-	"github.com/xi163/libgo/core/base/pipe"
-	"github.com/xi163/libgo/core/net/conn"
-	"github.com/xi163/libgo/core/net/keepalive/bucket"
+	"github.com/cwloo/gonet/core/base/pipe"
+	"github.com/cwloo/gonet/core/net/conn"
+	"github.com/cwloo/gonet/core/net/keepalive/bucket"
 )
 
 var (
@@ -16,9 +16,7 @@ var (
 	}
 )
 
-// <summary>
-// Bucket 定时轮盘池，处理空闲会话(多生产者，多消费者)
-// <summary>
+// 定时轮盘池，处理空闲会话(多生产者，多消费者)
 type Buckets interface {
 	Push(peer conn.Session)
 	Update(peer conn.Session)
@@ -36,7 +34,6 @@ func NewBuckets() Buckets {
 	switch s.pipe {
 	case nil:
 	default:
-		s.pipe.AssociatedUp()
 	}
 	return s
 }
@@ -84,7 +81,6 @@ func (s *keepalive) Put() {
 	switch s.pipe {
 	case nil:
 	default:
-		s.pipe.AssociatedDown()
 	}
 	t.Put(s)
 }

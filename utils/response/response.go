@@ -3,7 +3,7 @@ package response
 import (
 	"net/http"
 
-	"github.com/xi163/libgo/utils/result"
+	"github.com/cwloo/gonet/utils/result"
 	"github.com/gin-gonic/gin"
 )
 

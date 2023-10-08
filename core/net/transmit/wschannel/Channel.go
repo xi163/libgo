@@ -3,17 +3,13 @@ package wschannel
 import (
 	"errors"
 
-	"github.com/xi163/libgo/core/net/transmit"
-	logs "github.com/xi163/libgo/logs"
-	"github.com/xi163/libgo/utils/codec"
-	"github.com/xi163/libgo/utils/conv"
-
+	"github.com/cwloo/gonet/core/net/transmit"
+	logs "github.com/cwloo/gonet/logs"
+	"github.com/cwloo/gonet/utils/codec"
 	"github.com/gorilla/websocket"
 )
 
-// <summary>
-// Channel websocket协议读写解析
-// <summary>
+// websocket协议读写解析
 type Channel struct {
 }
 
@@ -21,35 +17,55 @@ func NewChannel() transmit.Channel {
 	return &Channel{}
 }
 
-func (s *Channel) OnRecv(conn any) (any, error) {
+func (s *Channel) OnRecv(conn any) (int, any, error) {
 	c, _ := conn.(*websocket.Conn)
 	if c == nil {
-		panic(errors.New("error"))
+		logs.Fatalf("error")
 	}
 	// c.SetReadLimit(1024)
-	msgType, msg, err := c.ReadMessage()
-	if msgType == websocket.PingMessage {
-		logs.Infof("", "this is a pingMessage")
+	msgType, b, err := c.ReadMessage()
+	if err != nil {
+		logs.Errorf(err.Error())
+		return msgType, nil, err
 	}
-	//TextMessage/BinaryMessage
-	if websocket.TextMessage != msgType {
-		panic(errors.New("error"))
+	switch msgType {
+	// case websocket.PingMessage:
+	// 	return msgType, nil, errors.New("error PingMessage")
+	// case websocket.TextMessage:
+	// 	return msgType, nil, errors.New("error TextMessage")
+	case websocket.CloseMessage:
+		return msgType, nil, errors.New("peer closed")
 	}
-	return msg, err
+	return msgType, b, err
 }
 
-func (s *Channel) OnSend(conn any, msg any) error {
+func (s *Channel) OnSend(conn any, msg any, msgType int) error {
 	c, _ := conn.(*websocket.Conn)
 	if c == nil {
-		panic(errors.New("error"))
+		logs.Fatalf("error")
 	}
-	// c.SetWriteDeadline(time.Now().Add(time.Duration(60) * time.Second))
-	switch msg := msg.(type) {
-	case string:
-		return c.WriteMessage(websocket.BinaryMessage, conv.StrToByte(msg))
-	case []byte:
-		return c.WriteMessage(websocket.BinaryMessage, msg)
+	switch msgType {
+	case websocket.TextMessage:
+		// c.SetWriteDeadline(time.Now().Add(time.Duration(60) * time.Second))
+		switch msg := msg.(type) {
+		case string:
+			return c.WriteMessage(msgType, []byte(msg))
+		case []byte:
+			return c.WriteMessage(msgType, msg)
+		}
+	case websocket.BinaryMessage:
+		// c.SetWriteDeadline(time.Now().Add(time.Duration(60) * time.Second))
+		switch msg := msg.(type) {
+		case string:
+			return c.WriteMessage(msgType, []byte(msg))
+		case []byte:
+			return c.WriteMessage(msgType, msg)
+		default:
+			b, _ := codec.Encode(msg)
+			return c.WriteMessage(msgType, b)
+		}
+	default:
+		logs.Fatalf("msg type")
 	}
-	b, _ := codec.Encode(msg)
-	return c.WriteMessage(websocket.BinaryMessage, b)
+	panic("error")
 }

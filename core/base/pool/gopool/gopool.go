@@ -3,8 +3,8 @@ package gopool
 import (
 	"time"
 
-	"github.com/xi163/libgo/core/base/pool"
-	"github.com/xi163/libgo/core/cb"
+	"github.com/cwloo/gonet/core/base/pool"
+	"github.com/cwloo/gonet/core/cb"
 )
 
 // go协程池(动态, 非阻塞)
@@ -18,14 +18,6 @@ func Go(f cb.Functor) {
 
 func GoTimeout(d time.Duration, f cb.Functor, fn cb.Functor) {
 	gos.GoTimeout(d, f, fn)
-}
-
-func Num() int {
-	return gos.Num()
-}
-
-func ResetNum() {
-	gos.ResetNum()
 }
 
 func Start() {

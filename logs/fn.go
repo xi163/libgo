@@ -1,32 +1,10 @@
 package logs
 
 import (
-	"path"
-	"strings"
 	"time"
 )
 
-func _fn(name string) (string, string) {
-	//path/pkg.(type).func
-	//path/pkg.(type[...]).func
-	name = strings.ReplaceAll(name, "...", "T")
-	_, f := path.Split(name)
-	v := strings.Split(f, ".")
-	if len(v) >= 3 {
-		//pkg.(type).func
-		v[1] = strings.Replace(v[1], "(", "", 1)
-		if []byte(v[1])[0] == '*' {
-			v[1] = strings.Replace(v[1], "*", "", 1)
-		}
-		v[1] = strings.Replace(v[1], ")", "", 1)
-		//pkg type.func
-		return v[0], v[1] + "." + v[2]
-	}
-	//pkg func
-	return v[0], v[1]
-}
-
-func _tz(timezone Timezone) string {
+func String(timezone Timezone) string {
 	switch timezone {
 	case MY_PST:
 		return "PST"
@@ -93,49 +71,49 @@ func setting(tm *time.Time, timezone Timezone) {
 	case MY_UTC:
 		switch tm {
 		case nil:
-			FatalfF("error")
+			Fatalf_fn("error")
 		}
 	case MY_PST:
 		switch tm {
 		case nil:
-			FatalfF("error")
+			Fatalf_fn("error")
 		}
 	case MY_MST:
 		switch tm {
 		case nil:
-			FatalfF("error")
+			Fatalf_fn("error")
 		}
 	case MY_EST:
 		switch tm {
 		case nil:
-			FatalfF("error")
+			Fatalf_fn("error")
 		}
-		InfofF("%v %v %v %v America/New_York %v", LevelString(), ModeString(), StyleString(), TimezoneString(), tm.Format("2006/01/02 15:04:05"))
+		Infof_fn("%v %v %v %v America/New_York %v", LevelString(), ModeString(), StyleString(), TimezoneString(), tm.Format("2006/01/02 15:04:05"))
 	case MY_BST:
 		switch tm {
 		case nil:
-			FatalfF("error")
+			Fatalf_fn("error")
 		}
-		InfofF("%v %v %v %v Europe/London %v", LevelString(), ModeString(), StyleString(), TimezoneString(), tm.Format("2006/01/02 15:04:05"))
+		Infof_fn("%v %v %v %v Europe/London %v", LevelString(), ModeString(), StyleString(), TimezoneString(), tm.Format("2006/01/02 15:04:05"))
 	case MY_GST:
 		switch tm {
 		case nil:
-			FatalfF("error")
+			Fatalf_fn("error")
 		}
-		InfofF("%v %v %v %v Asia/Dubai %v", LevelString(), ModeString(), StyleString(), TimezoneString(), tm.Format("2006/01/02 15:04:05"))
+		Infof_fn("%v %v %v %v Asia/Dubai %v", LevelString(), ModeString(), StyleString(), TimezoneString(), tm.Format("2006/01/02 15:04:05"))
 	case MY_CST:
 		switch tm {
 		case nil:
-			FatalfF("error")
+			Fatalf_fn("error")
 		}
-		InfofF("%v %v %v %v Asia/Shanghai %v", LevelString(), ModeString(), StyleString(), TimezoneString(), tm.Format("2006/01/02 15:04:05"))
+		Infof_fn("%v %v %v %v Asia/Shanghai %v", LevelString(), ModeString(), StyleString(), TimezoneString(), tm.Format("2006/01/02 15:04:05"))
 	case MY_JST:
 		switch tm {
 		case nil:
-			FatalfF("error")
+			Fatalf_fn("error")
 		}
-		InfofF("%v %v %v %v Asia/Tokyo %v", LevelString(), ModeString(), StyleString(), TimezoneString(), tm.Format("2006/01/02 15:04:05"))
+		Infof_fn("%v %v %v %v Asia/Tokyo %v", LevelString(), ModeString(), StyleString(), TimezoneString(), tm.Format("2006/01/02 15:04:05"))
 	default:
-		ErrorfTLF("%v %v %v %v", LevelString(), ModeString(), StyleString(), TimezoneString())
+		Errorf_fl_fn("%v %v %v %v", LevelString(), ModeString(), StyleString(), TimezoneString())
 	}
 }

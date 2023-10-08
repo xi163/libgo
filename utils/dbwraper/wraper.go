@@ -1,11 +1,11 @@
 package dbwraper
 
 import (
-	"github.com/xi163/libgo/utils/dbwraper/Gorm"
-	"github.com/xi163/libgo/utils/dbwraper/Mongo"
-	"github.com/xi163/libgo/utils/dbwraper/Redis"
-	"github.com/xi163/libgo/utils/dbwraper/Sql"
-	"github.com/xi163/libgo/utils/json"
+	"github.com/cwloo/gonet/utils/dbwraper/Gorm"
+	"github.com/cwloo/gonet/utils/dbwraper/Mongo"
+	"github.com/cwloo/gonet/utils/dbwraper/Redis"
+	"github.com/cwloo/gonet/utils/dbwraper/Sql"
+	"github.com/cwloo/gonet/utils/json"
 )
 
 var Wrap = &Wraper{}
@@ -15,6 +15,26 @@ type Wraper struct {
 	Mongo Mongo.DB
 	Sql   Sql.DB
 	Gorm  Gorm.DB
+}
+
+func InitRedis(RedisConf any) {
+	json.Parse(json.Bytes(RedisConf), &Redis.Conf)
+	Wrap.Redis.Init(Redis.Conf)
+}
+
+func InitMongo(MongoConf any) {
+	json.Parse(json.Bytes(MongoConf), &Mongo.Conf)
+	Wrap.Mongo.Init(Mongo.Conf)
+}
+
+func InitMySql(SqlConf any) {
+	json.Parse(json.Bytes(SqlConf), &Sql.Conf)
+	Wrap.Sql.Init(Sql.Conf)
+}
+
+func InitMyGorm(GormConf any) {
+	json.Parse(json.Bytes(GormConf), &Gorm.Conf)
+	Wrap.Gorm.Init(Gorm.Conf)
 }
 
 func Init(RedisConf, MongoConf, SqlConf, GormConf any) {

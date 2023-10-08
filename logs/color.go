@@ -1,7 +1,7 @@
 package logs
 
 import (
-	"github.com/xi163/libgo/logs/color_linux"
+	"github.com/cwloo/gonet/logs/color_linux"
 )
 
 var (
@@ -9,9 +9,10 @@ var (
 		{color_linux.FOREGROUND_Red, color_linux.FOREGROUND_Cyan},     //LVL_FATAL
 		{color_linux.FOREGROUND_Red, color_linux.FOREGROUND_Cyan},     //LVL_ERROR
 		{color_linux.FOREGROUND_Cyan, color_linux.FOREGROUND_Purple},  //LVL_WARN
+		{color_linux.FOREGROUND_White, color_linux.FOREGROUND_Red},    //LVL_CRITICAL
 		{color_linux.FOREGROUND_Purple, color_linux.FOREGROUND_White}, //LVL_INFO
-		{color_linux.FOREGROUND_Yellow, color_linux.FOREGROUND_Green}, //LVL_TRACE
 		{color_linux.FOREGROUND_Green, color_linux.FOREGROUND_Yellow}, //LVL_DEBUG
+		{color_linux.FOREGROUND_Yellow, color_linux.FOREGROUND_Green}, //LVL_TRACE
 	}
 )
 

@@ -7,38 +7,35 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/xi163/libgo/core/base/pool/connpool"
-	"github.com/xi163/libgo/core/cb"
-	"github.com/xi163/libgo/core/net/conn"
-	"github.com/xi163/libgo/core/net/transmit"
-	logs "github.com/xi163/libgo/logs"
+	"github.com/cwloo/gonet/core/base/pool/connpool"
+	"github.com/cwloo/gonet/core/cb"
+	"github.com/cwloo/gonet/core/net/conn"
+	"github.com/cwloo/gonet/core/net/transmit"
+	logs "github.com/cwloo/gonet/logs"
 
 	"github.com/gorilla/websocket"
 )
 
-// <summary>
-// Connector TCP连接器
-// <summary>
+// TCP连接器
 type Connector interface {
 	Reconnect()
 	Retry() bool
 	EnableRetry(bool)
 	ServerAddr() string
-	ConnectTCP(address ...string)
+	ConnectTCP(header http.Header, address ...string)
 	SetProtocolCallback(cb cb.OnProtocol)
 	SetNewConnectionCallback(cb cb.OnNewConnection)
+	SetConnectErrorCallback(cb cb.OnConnectError)
 	GetIdleTimeout() time.Duration
 	SetIdleTimeout(d time.Duration)
 	SetDialTimeout(d time.Duration)
 	SetRetryInterval(d time.Duration)
 }
 
-// <summary>
-// Connector TCP连接器
-// <summary>
 type connector struct {
 	name, tmp       string
 	retry           bool
+	header          http.Header
 	addr            *conn.Address
 	dialTimeout     time.Duration
 	d               time.Duration
@@ -46,6 +43,7 @@ type connector struct {
 	channel         transmit.Channel
 	onProtocol      cb.OnProtocol
 	onNewConnection cb.OnNewConnection
+	onConnectError  cb.OnConnectError
 }
 
 func NewConnector(name string, address ...string) Connector {
@@ -102,6 +100,10 @@ func (s *connector) SetNewConnectionCallback(cb cb.OnNewConnection) {
 	s.onNewConnection = cb
 }
 
+func (s *connector) SetConnectErrorCallback(cb cb.OnConnectError) {
+	s.onConnectError = cb
+}
+
 func (s *connector) assertProtocol() {
 	if s.onProtocol == nil {
 		panic(errors.New("error"))
@@ -118,54 +120,55 @@ func (s *connector) connectTCPTimeout(addr *conn.Address, d time.Duration) error
 	logs.Debugf("%s", addr.Format())
 	c, err := net.DialTimeout(addr.Proto, addr.Addr, d)
 	if err != nil {
-		logs.Errorf(err.Error())
+		// logs.Errorf(err.Error())
+		s.onConnectError(addr.Proto, err)
 		return err
 	}
 	switch conn.UsePool {
 	case true:
 		connpool.Do(cb.NewFunctor00(func() {
-			s.onNewConnection(c, s.channel, s.addr.Proto)
+			s.onNewConnection(c, s.channel, s.addr.Proto, nil)
 		}))
 	default:
-		s.onNewConnection(c, s.channel, s.addr.Proto)
+		s.onNewConnection(c, s.channel, s.addr.Proto, nil)
 	}
 	return nil
 }
 
-func (s *connector) connectWSTimeout(addr *conn.Address, d time.Duration) error {
-	dialer := websocket.Dialer{}
-	dialer.Proxy = http.ProxyFromEnvironment
-	dialer.HandshakeTimeout = d
+func (s *connector) connectWSTimeout(addr *conn.Address, d time.Duration, header http.Header) error {
+	dialer := websocket.Dialer{Proxy: http.ProxyFromEnvironment, HandshakeTimeout: d}
 	u := url.URL{Scheme: addr.Proto, Host: addr.Addr, Path: addr.Path}
 	logs.Debugf("%s", addr.Format())
-	c, _, err := dialer.Dial(u.String(), nil)
+	c, _, err := dialer.Dial(u.String(), header)
 	if err != nil {
-		logs.Errorf(err.Error())
+		// logs.Errorf(err.Error())
+		s.onConnectError(addr.Proto, err)
 		return err
 	}
 	switch conn.UsePool {
 	case true:
 		connpool.Do(cb.NewFunctor00(func() {
-			s.onNewConnection(c, s.channel, s.addr.Proto)
+			s.onNewConnection(c, s.channel, s.addr.Proto, nil)
 		}))
 	default:
-		s.onNewConnection(c, s.channel, s.addr.Proto)
+		s.onNewConnection(c, s.channel, s.addr.Proto, nil)
 	}
 	return nil
 }
 
-func (s *connector) ConnectTCP(address ...string) {
+func (s *connector) ConnectTCP(header http.Header, address ...string) {
 	s.assertProtocol()
 	s.assertOnNewConnection()
 	if len(address) > 0 {
 		s.addr = conn.ParseAddress(address[0])
 	}
+	s.header = header
 	if s.addr != nil {
 		s.toName()
 		s.channel = s.onProtocol(s.addr.Proto)
 		switch s.addr.Proto {
 		case "ws", "wss":
-			if s.connectWSTimeout(s.addr, s.dialTimeout) != nil && s.retry {
+			if s.connectWSTimeout(s.addr, s.dialTimeout, s.header) != nil && s.retry {
 				time.AfterFunc(s.d, s.reconnect)
 			}
 		case "tcp":
@@ -177,14 +180,14 @@ func (s *connector) ConnectTCP(address ...string) {
 }
 
 func (s *connector) reconnect() {
-	logs.Debugf("%v %v", s.name, s.addr.Addr)
+	// logs.Debugf("%v %v", s.name, s.addr.Addr)
 	switch s.addr.Proto {
 	case "tcp":
 		if s.connectTCPTimeout(s.addr, s.dialTimeout) != nil && s.retry {
 			time.AfterFunc(s.d, s.reconnect)
 		}
 	case "ws", "wss":
-		if s.connectWSTimeout(s.addr, s.dialTimeout) != nil && s.retry {
+		if s.connectWSTimeout(s.addr, s.dialTimeout, s.header) != nil && s.retry {
 			time.AfterFunc(s.d, s.reconnect)
 		}
 	}

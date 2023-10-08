@@ -2,6 +2,7 @@ package tcpserver_test
 
 import (
 	"errors"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -10,15 +11,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/xi163/libgo/core/net/conn"
-	"github.com/xi163/libgo/core/net/tcp/tcpserver"
-	"github.com/xi163/libgo/core/net/transmit"
-	wschannel_tst "github.com/xi163/libgo/core/net/transmit/wschannel/wschannel_tst"
-	logs "github.com/xi163/libgo/logs"
-	"github.com/xi163/libgo/utils/conv"
-	"github.com/xi163/libgo/utils/timestamp"
-	"github.com/xi163/libgo/utils/user_context"
-	"github.com/xi163/libgo/utils/user_session"
+	"github.com/cwloo/gonet/core/net/conn"
+	"github.com/cwloo/gonet/core/net/tcp/tcpserver"
+	"github.com/cwloo/gonet/core/net/transmit"
+	wschannel_tst "github.com/cwloo/gonet/core/net/transmit/wschannel/wschannel_tst"
+	logs "github.com/cwloo/gonet/logs"
+	"github.com/cwloo/gonet/utils/conv"
+	"github.com/cwloo/gonet/utils/timestamp"
+	"github.com/cwloo/gonet/utils/user_context"
+	"github.com/cwloo/gonet/utils/user_session"
 )
 
 type EchoServer struct {
@@ -36,7 +37,8 @@ func NewServer(addr string) *EchoServer {
 	s.users = user_session.NewUserToPlatforms()
 	s.server = tcpserver.NewTCPServer("EchoServer", s.addr)
 	s.server.SetProtocolCallback(s.onProtocol)
-	s.server.SetHandshakeCallback(s.onHandshake)
+	s.server.SetVerifyCallback(s.onVerify)
+	s.server.SetConditionCallback(s.onCondition)
 	s.server.SetConnectedCallback(s.onConnected)
 	s.server.SetClosedCallback(s.onClosed)
 	s.server.SetMessageCallback(s.onMessage)
@@ -62,13 +64,17 @@ func (s *EchoServer) onProtocol(proto string) transmit.Channel {
 	panic(errors.New("no proto setup"))
 }
 
-func (s *EchoServer) onHandshake(w http.ResponseWriter, r *http.Request) bool {
+func (s *EchoServer) onVerify(w http.ResponseWriter, r *http.Request) bool {
 	if atomic.LoadInt32(&s.n) >= int32(s.numMaxConns) {
 		logs.Errorf("numMaxConns=%v", s.numMaxConns)
 		return false
 	}
 	// query := r.URL.Query()
 	logs.Infof("%v", r.URL.String())
+	return true
+}
+
+func (s *EchoServer) onCondition(peerAddr net.Addr, peerRegion *conn.Region) bool {
 	return true
 }
 
@@ -85,7 +91,7 @@ func (s *EchoServer) onConnected(peer conn.Session, v ...any) {
 	}
 }
 
-func (s *EchoServer) onClosed(peer conn.Session, reason conn.Reason) {
+func (s *EchoServer) onClosed(peer conn.Session, reason conn.Reason, v ...any) {
 	if peer.Connected() {
 		panic("error")
 	} else {
@@ -96,7 +102,7 @@ func (s *EchoServer) onClosed(peer conn.Session, reason conn.Reason) {
 	}
 }
 
-func (s *EchoServer) onMessage(peer conn.Session, msg any, recvTime timestamp.T) {
+func (s *EchoServer) onMessage(peer conn.Session, msg any, msgType int, recvTime timestamp.T) {
 	logs.Debugf("%v", string(msg.([]byte)))
 	// peer.Write(utils.Str2Byte("server"))
 }

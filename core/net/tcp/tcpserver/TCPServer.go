@@ -3,13 +3,11 @@ package tcpserver
 import (
 	"time"
 
-	"github.com/xi163/libgo/core/cb"
-	"github.com/xi163/libgo/core/net/conn"
+	"github.com/cwloo/gonet/core/cb"
+	"github.com/cwloo/gonet/core/net/conn"
 )
 
-// <summary>
-// TCPServer TCP服务端
-// <summary>
+// TCP服务端
 type TCPServer interface {
 	Name() string
 	Peers() conn.Sessions
@@ -19,7 +17,7 @@ type TCPServer interface {
 	Range(cb func(peer conn.Session))
 	SetHoldType(holdType conn.HoldType)
 	SetProtocolCallback(cb cb.OnProtocol)
-	SetHandshakeCallback(cb cb.OnHandshake)
+	SetVerifyCallback(cb cb.OnVerify)
 	SetConditionCallback(cb cb.OnCondition)
 	SetConnectedCallback(cb cb.OnConnected)
 	SetClosedCallback(cb cb.OnClosed)

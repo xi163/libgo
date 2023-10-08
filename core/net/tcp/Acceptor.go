@@ -7,19 +7,17 @@ import (
 	"sync"
 	"time"
 
-	"github.com/xi163/libgo/core/base/cc"
-	"github.com/xi163/libgo/core/base/pool/connpool"
-	"github.com/xi163/libgo/core/cb"
-	"github.com/xi163/libgo/core/net/conn"
-	"github.com/xi163/libgo/core/net/transmit"
-	logs "github.com/xi163/libgo/logs"
+	"github.com/cwloo/gonet/core/base/cc"
+	"github.com/cwloo/gonet/core/base/pool/connpool"
+	"github.com/cwloo/gonet/core/cb"
+	"github.com/cwloo/gonet/core/net/conn"
+	"github.com/cwloo/gonet/core/net/transmit"
+	logs "github.com/cwloo/gonet/logs"
 
 	"github.com/gorilla/websocket"
 )
 
-// <summary>
-// Acceptor TCP接受器
-// <summary>
+// TCP接受器
 type Acceptor interface {
 	Addr() *conn.Address
 	ListenTCP(address ...string)
@@ -27,7 +25,7 @@ type Acceptor interface {
 	GetIdleTimeout() time.Duration
 	SetCertFile(certfile, keyfile string)
 	SetProtocolCallback(cb cb.OnProtocol)
-	SetHandshakeCallback(cb cb.OnHandshake)
+	SetVerifyCallback(cb cb.OnVerify)
 	SetConditionCallback(cb cb.OnCondition)
 	SetNewConnectionCallback(cb cb.OnNewConnection)
 	SetHandshakeTimeout(d time.Duration)
@@ -35,9 +33,6 @@ type Acceptor interface {
 	SetReadBufferSize(readBufferSize int)
 }
 
-// <summary>
-// acceptor TCP接受器
-// <summary>
 type acceptor struct {
 	certfile, keyfile string
 	name              string
@@ -55,7 +50,7 @@ type acceptor struct {
 	listener          net.Listener
 	channel           transmit.Channel
 	onProtocol        cb.OnProtocol
-	onHandshake       cb.OnHandshake
+	onVerify          cb.OnVerify
 	onCondition       cb.OnCondition
 	onNewConnection   cb.OnNewConnection
 	handshakeTimeout  time.Duration
@@ -111,8 +106,8 @@ func (s *acceptor) SetProtocolCallback(cb cb.OnProtocol) {
 	s.onProtocol = cb
 }
 
-func (s *acceptor) SetHandshakeCallback(cb cb.OnHandshake) {
-	s.onHandshake = cb
+func (s *acceptor) SetVerifyCallback(cb cb.OnVerify) {
+	s.onVerify = cb
 }
 
 func (s *acceptor) SetConditionCallback(cb cb.OnCondition) {
@@ -194,7 +189,7 @@ func (s *acceptor) accept() {
 	for !s.is_stopping() {
 		c, err := s.listener.Accept()
 		if err != nil {
-			if ne, ok := err.(net.Error); ok && ne.Temporary() {
+			if _, ok := err.(net.Error); ok /* && ne.Temporary()*/ {
 				if delay == 0 {
 					delay = 5 * time.Millisecond
 				} else {
@@ -213,19 +208,21 @@ func (s *acceptor) accept() {
 		switch conn.UsePool {
 		case true:
 			connpool.Do(cb.NewFunctor00(func() {
-				if s.onCondition != nil && !s.onCondition(c.RemoteAddr()) {
+				peerRegion := conn.Region{}
+				if s.onCondition != nil && !s.onCondition(c.RemoteAddr(), &peerRegion) {
 					c.Close()
 				} else if s.onNewConnection != nil {
-					s.onNewConnection(c, s.channel, s.addr.Proto)
+					s.onNewConnection(c, s.channel, s.addr.Proto, &peerRegion)
 				} else {
 					c.Close()
 				}
 			}))
 		default:
-			if s.onCondition != nil && !s.onCondition(c.RemoteAddr()) {
+			peerRegion := conn.Region{}
+			if s.onCondition != nil && !s.onCondition(c.RemoteAddr(), &peerRegion) {
 				c.Close()
 			} else if s.onNewConnection != nil {
-				s.onNewConnection(c, s.channel, s.addr.Proto)
+				s.onNewConnection(c, s.channel, s.addr.Proto, &peerRegion)
 			} else {
 				c.Close()
 			}
@@ -250,7 +247,7 @@ func (s acceptor) upgradeAndServe(addr *conn.Address) {
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc(addr.Path, func(w http.ResponseWriter, r *http.Request) {
-		if s.onHandshake != nil && !s.onHandshake(w, r) {
+		if s.onVerify != nil && !s.onVerify(w, r) {
 			return
 		}
 		c, err := s.upgrader.Upgrade(w, r, nil)
@@ -260,19 +257,21 @@ func (s acceptor) upgradeAndServe(addr *conn.Address) {
 		switch conn.UsePool {
 		case true:
 			connpool.Do(cb.NewFunctor00(func() {
-				if s.onCondition != nil && !s.onCondition(c.RemoteAddr()) {
+				peerRegion := conn.Region{}
+				if s.onCondition != nil && !s.onCondition(c.RemoteAddr(), &peerRegion) {
 					c.Close()
 				} else if s.onNewConnection != nil {
-					s.onNewConnection(c, s.channel, s.addr.Proto, w, r)
+					s.onNewConnection(c, s.channel, s.addr.Proto, &peerRegion, w, r)
 				} else {
 					c.Close()
 				}
 			}))
 		default:
-			if s.onCondition != nil && !s.onCondition(c.RemoteAddr()) {
+			peerRegion := conn.Region{}
+			if s.onCondition != nil && !s.onCondition(c.RemoteAddr(), &peerRegion) {
 				c.Close()
 			} else if s.onNewConnection != nil {
-				s.onNewConnection(c, s.channel, s.addr.Proto, w, r)
+				s.onNewConnection(c, s.channel, s.addr.Proto, &peerRegion, w, r)
 			} else {
 				c.Close()
 			}

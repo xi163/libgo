@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/xi163/libgo/core/base/cc"
+	"github.com/cwloo/gonet/core/base/cc"
 )
 
 var (
@@ -15,9 +15,7 @@ var (
 	}
 )
 
-// <summary>
-// Timeout 超时请求结构
-// <summary>
+// 超时请求结构
 type Timeout interface {
 	Data() any
 	Expire() cc.Expire

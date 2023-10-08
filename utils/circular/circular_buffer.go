@@ -1,8 +1,8 @@
 package circular
 
 import (
-	"github.com/xi163/libgo/logs"
-	"github.com/xi163/libgo/utils/bucket"
+	"github.com/cwloo/gonet/logs"
+	"github.com/cwloo/gonet/utils/bucket"
 )
 
 type Buffer[T any] interface {
@@ -39,7 +39,7 @@ func New[T any](cap int, reset_val T) Buffer[T] {
 		size:      0,
 		reset_val: reset_val,
 		cap:       cap,
-		slice:     make([]T, cap)}
+		slice:     make([]T, cap)} //len:cap cap:cap
 	return s
 }
 

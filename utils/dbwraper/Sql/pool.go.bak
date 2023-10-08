@@ -3,7 +3,7 @@ package mysql
 import (
 	"log"
 
-	"github.com/xi163/libgo/core/base/sys"
+	"github.com/cwloo/gonet/core/base/sys"
 )
 
 type Pool struct {

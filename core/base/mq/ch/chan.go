@@ -3,34 +3,31 @@ package ch
 import (
 	"errors"
 
-	"github.com/xi163/libgo/core/base/cc"
-	"github.com/xi163/libgo/core/base/mq"
-	"github.com/xi163/libgo/core/base/mq/lq"
-	"github.com/xi163/libgo/core/cb"
+	"github.com/cwloo/gonet/core/base/cc"
+	"github.com/cwloo/gonet/core/base/mq"
+	"github.com/cwloo/gonet/core/base/mq/lq"
+	"github.com/cwloo/gonet/core/cb"
 )
 
-// <summary>
-// Chan 消息队列
-// <summary>
+// chan消息队列
 type Chan struct {
 	nonblock bool
-	n, size  int32
+	size     int32
 	mq       chan any
 	wakeup   chan bool
 	pendings mq.Queue
 	closed   [2]cc.AtomFlag
 }
 
-func NewChan(n, size int, nonblock bool) Queue {
-	if n <= 0 || size <= 0 {
-		panic(errors.New("NewChan error: n, size"))
+func NewChan(size int, nonblock bool) Queue {
+	if size <= 0 {
+		panic(errors.New("NewChan error: size"))
 	}
 	s := &Chan{
 		nonblock: nonblock,
-		n:        int32(n),
 		size:     int32(size),
 		mq:       make(chan any, size),
-		wakeup:   make(chan bool, n),
+		wakeup:   make(chan bool, 1),
 		pendings: lq.NewList(1000),
 		closed:   [2]cc.AtomFlag{cc.NewAtomFlag(), cc.NewAtomFlag()},
 	}

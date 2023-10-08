@@ -1,6 +1,6 @@
 package result
 
-import "github.com/xi163/libgo/utils/validator"
+import "github.com/cwloo/gonet/utils/validator"
 
 type R struct {
 	Code   int    `json:"code" form:"code"`

@@ -1,9 +1,9 @@
 package run
 
 import (
-	"github.com/xi163/libgo/core/base/mq"
+	"github.com/cwloo/gonet/core/base/mq"
 
-	"github.com/xi163/libgo/core/cb"
+	"github.com/cwloo/gonet/core/cb"
 )
 
 type EndType uint8
@@ -18,20 +18,13 @@ type GcCondition func(r Processor, args Args) (int, bool)
 
 type Overload func(r Processor) (int, bool)
 
-// <summary>
-// Processor 执行消息队列
-// <summary>
+// 执行消息队列
 type Processor interface {
 	Name() string
 	Queue() mq.Queue
 	SetQueue(q mq.Queue)
-	Wait()
-	Count() int
-	IdleCount() int
-	IdleUp()
-	IdleDown()
-	NewArgs(proc Proc) Args
 	SetProcessor(handler cb.Processor)
-	SetGcCondition(handler GcCondition)
+	NewArgs(proc Proc) Args
 	Run(proc Proc)
+	Wait()
 }
